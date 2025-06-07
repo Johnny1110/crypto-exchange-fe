@@ -22,6 +22,8 @@
 </template>
 
 <script>
+import router from "@/router";
+
 export default {
   name: 'MarketTable',
   props: {
@@ -53,7 +55,8 @@ export default {
     },
 
     selectMarket(market) {
-      this.$emit('market-selected', market)
+      console.log(market)
+      router.push('/markets/' + market.market_name)
     }
   }
 }

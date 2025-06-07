@@ -11,9 +11,9 @@
       </div>
 
       <div class="nav-bar">
-        <a href="#" @click.prevent="activeTab = 'home'" :class="{ active: activeTab === 'home' }">Home</a>
+        <router-link to="/">Home</router-link>
         <a href="#" @click.prevent="activeTab = 'trade'" :class="{ active: activeTab === 'trade' }">Trade</a>
-        <a href="#" @click.prevent="activeTab = 'wallet'" :class="{ active: activeTab === 'wallet' }">Wallet</a>
+        <router-link to="/balances">Wallet</router-link>
         <a href="#" @click.prevent="activeTab = 'account'" :class="{ active: activeTab === 'account' }">Account</a>
         <a href="#" @click.prevent="isLoggedIn ? handleLogout() : showLogin()" class="auth-link">
           {{ isLoggedIn ? 'Logout' : 'Login' }}
@@ -43,6 +43,9 @@
             :markets="markets"
             @market-selected="onMarketSelected"
         />
+
+
+
       </template>
 
       <div class="footer">
