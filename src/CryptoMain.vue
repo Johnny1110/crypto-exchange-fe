@@ -13,8 +13,14 @@
       <!-- Login Modal -->
       <LoginModal
           :visible="showLoginModal"
-          @close="showLoginModal = false"
+          @close="closeLoginModal"
           @login-success="onLoginSuccess"
+      />
+      <CommonModal
+          :visible="showModal"
+          @close="showModal = false"
+          @login-success="onLoginSuccess"
+          :commonData="commonData.data"
       />
 
       <div class="nav-bar">
@@ -65,6 +71,7 @@
 <script setup lang="js">
 import {authUtils} from '@/services/auth'
 import LoginModal from "@/components/LoginModal.vue";
+import CommonModal from "@/components/common/CommonModal.vue";
 import UserProfile from "@/components/UserProfile.vue";
 import {userAPI} from "@/services/apiService";
 import {onMounted, reactive, ref} from "vue";
@@ -78,9 +85,18 @@ import {onMounted, reactive, ref} from "vue";
      "taker_fee": null,
      "created_at": null
    }});
+ let commonData = reactive({data:{
+     "context": "",
+     "title": "",
+   }});
 let activeTab = ref('home')
 let isLoggedIn = ref(false)
 let showLoginModal = ref(false)
+let loading = ref(false)
+let error = ref(false)
+let showModal = ref(false)
+let lastUpdated = ref(new  Date().getFullYear().valueOf()+ '-'
+    + (new Date().getMonth() + 1).toString().padStart(2, '0') )
 
 
 onMounted(() => {
@@ -122,7 +138,13 @@ const checkAuthStatus = async () => {
     }
   }
 }
+const closeLoginModal = () => {
+  showLoginModal.value = false
+  commonData.data.context = 'Login Successfully'
+  commonData.data.title = 'NOTIFY'
+  showModal.value = true
 
+}
 
 </script>
 
