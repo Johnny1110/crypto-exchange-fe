@@ -25,6 +25,10 @@
             <div class="stat-item">
               <span class="stat-label">Non-Zero Balances:</span>
               <span class="stat-value">{{ nonZeroBalances }}</span>
+             </div>
+            <div class="stat-item">
+              <span class="stat-label">Total Valuation:</span>
+               <span class="stat-value">{{ totalValuation }}</span>
             </div>
           </div>
         </div>
@@ -50,6 +54,7 @@
               <th>Available</th>
               <th>Locked</th>
               <th>Total</th>
+              <th>Valuation</th>
               <th>Status</th>
             </tr>
             </thead>
@@ -62,6 +67,7 @@
               <td class="amount-cell">{{ formatAmount(balance.available) }}</td>
               <td class="amount-cell">{{ formatAmount(balance.locked) }}</td>
               <td class="amount-cell total">{{ formatAmount(balance.total) }}</td>
+              <td class="amount-cell total">{{ formatAmount(balance.asset_valuation) + '    '+balance.valuation_currency }}</td>
               <td class="status-cell">
                   <span class="status-badge" :class="getStatusClass(balance)">
                     {{ getStatusText(balance) }}
@@ -111,6 +117,9 @@ export default {
     },
     nonZeroBalances() {
       return this.balances.filter(balance => balance.total > 0).length
+    },
+    totalValuation() {
+      return this.balances.reduce((sum, balance) => sum + parseFloat(balance.asset_valuation || 0), 0).toFixed(8)
     }
   },
   async mounted() {
@@ -280,8 +289,8 @@ export default {
 }
 
 .info-section {
-  padding: 15px;
-  margin-bottom: 15px;
+  padding: 5px;
+  margin-bottom: 5px;
 }
 
 .info-section h3 {
@@ -296,13 +305,15 @@ export default {
 .overview-stats {
   display: flex;
   gap: 30px;
-  margin: 15px 0;
+  margin: 5px 0;
+  justify-content: center;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  width: 60vh
 }
 
 .stat-label {
@@ -388,15 +399,15 @@ export default {
   color: #ff66cc;
 }
 
-.amount-cell {
-  text-align: right;
-  font-family: 'Courier New', monospace;
-}
+/*.amount-cell {*/
+/*  text-align: right;*/
+/*  font-family: 'Courier New', monospace;*/
+/*}*/
 
-.amount-cell.total {
-  font-weight: bold;
-  color: #ffccff;
-}
+/*.amount-cell.total {*/
+/*  font-weight: bold;*/
+/*  color: #ffccff;*/
+/*}*/
 
 .status-cell {
   text-align: center;

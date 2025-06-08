@@ -43,6 +43,7 @@ export const authUtils = {
 
     getUserProfile() {
         const data = localStorage.getItem('user_profile');
+        console.log('Retrieving user profile from localStorage:', data)
         try {
             return data ? JSON.parse(data) : null;
         } catch (e) {
