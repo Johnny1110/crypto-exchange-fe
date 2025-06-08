@@ -112,7 +112,7 @@ export default {
                 token: response.data.data.token
               })
               this.closeModal(true)
-            }, 1500)
+            }, 500)
           } else {
             // 註冊成功
             this.addCmdOutput('Registration successful!')
@@ -121,7 +121,7 @@ export default {
 
             setTimeout(() => {
               this.isLoginMode = true
-            }, 2000)
+            }, 500)
           }
         } else {
           throw new Error(response.data.message || 'Authentication failed')
