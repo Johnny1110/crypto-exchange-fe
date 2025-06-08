@@ -1,236 +1,154 @@
 <template>
-  <div class="app">
-    <div class="container">
-      <div class="title-bar">
-        <span>CryptoEx 2000 - Cryptocurrency Exchange</span>
-        <div>
-          <button>_</button>
-          <button>□</button>
-          <button>X</button>
-        </div>
-      </div>
+  <table class="market-table">
+    <thead>
+    <tr>
+      <th>Trading Pair</th>
+      <th>Price (USDT)</th>
+      <th>24h Change</th>
+      <th>Volume</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr v-for="market in markets" :key="market.market_name" @click="selectMarket(market)">
+      <td>{{ market.market_name }}</td>
+      <td :style="{ color: market.price_change_24h >= 0 ? '#00ff99' : '#ff3366' }">{{ formatPrice(market.latest_price) }}</td>
+      <td :style="{ color: market.price_change_24h >= 0 ? '#00ff99' : '#ff3366' }">
+        {{ formatChange(market.price_change_24h) }}
+      </td>
+      <td>{{ formatVolume(market.total_volume_24h) }}</td>
+    </tr>
+    </tbody>
+  </table>
 
-      <!-- Login Modal -->
-      <LoginModal
-          :visible="showLoginModal"
-          @close="showLoginModal = false"
-          @login-success="onLoginSuccess"
-      />
 
-      <div class="nav-bar">
-        <a><router-link to="/markets/list">Home</router-link></a>
-        <a href="#" @click.prevent="activeTab = 'trade'" :class="{ active: activeTab === 'trade' }">Trade</a>
-        <a><router-link to="/balances" @click.prevent="activeTab = 'balances'" :class="{ active: activeTab === 'balances' }">Wallet</router-link></a>
-        <a href="#" @click.prevent="activeTab = 'account'" :class="{ active: activeTab === 'account' }">Account</a>
-        <a href="#" @click.prevent="isLoggedIn ? handleLogout() : showLogin()" class="auth-link">
-          {{ isLoggedIn ? 'Logout' : 'Login' }}
-        </a>
-      </div>
+  <CommandWindow :push-data="apiResponse" />
 
-      <!-- User Profile Section -->
-      <UserProfile
-          v-if="isLoggedIn"
 
-          @logout="handleLogout"
-      />
-
-      <div class="loading" v-if="loading">
-        <div class="loading-text">Loading market data...</div>
-      </div>
-
-      <div class="error" v-if="error">
-        <div class="error-text">{{ error }}</div>
-        <button @click="fetchMarketData" class="retry-btn">Retry</button>
-      </div>
-
-      <router-view/>
-
-      <div class="footer">
-        CryptoEx 2000 © 2025 - All Rights Reserved |
-        Last Updated: {{ lastUpdated }}
-      </div>
-    </div>
-
-  </div>
 </template>
 
 <script>
-import { authUtils } from '@/services/auth'
-import LoginModal from "@/components/LoginModal.vue";
-import UserProfile from "@/components/UserProfile.vue";
-import {userAPI} from "@/services/apiService";
+import router from "@/router";
+import {marketAPI} from "@/services/apiService";
+import CommandWindow from "@/components/CommandWindow.vue";
 
 export default {
-  // eslint-disable-next-line vue/multi-word-component-names
-  name: 'Home',
-  components: {
-    UserProfile, LoginModal},
-
+  name: 'MarketTable',
+  components: {CommandWindow},
   data() {
     return {
-      userProfile: {},
-      activeTab: 'home',
-      isLoggedIn: false,
-      showLoginModal: false,
+      markets: [],
+      apiResponse: {}
     }
   },
-  mounted() {
-    this.checkAuthStatus()
-  },
-  methods: {
-    handleNavigation(tab) {
-      this.activeTab = tab
-    },
 
-    async onLoginSuccess() {
-      this.isLoggedIn = true
-      // 獲取用戶詳細資料
+  mounted() {
+    this.fetchMarketData()
+    this.startAutoRefresh()
+  },
+
+  methods: {
+    async fetchMarketData() {
+      this.loading = true
+      this.error = null
+
       try {
-        const response = await userAPI.getProfile()
+        const response = await marketAPI.getAllMarkets()
+
         if (response.data.code === '0000000') {
-          this.userProfile = response.data.data
-          authUtils.setUserProfile(response.data.data)
+          // eslint-disable-next-line vue/no-mutating-props
+          this.markets = response.data.data
+          this.apiResponse = response.data
+          this.lastUpdated = new Date().toLocaleTimeString()
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch market data')
         }
       } catch (error) {
-        console.error('Failed to fetch user profile:', error)
+        this.error = error.response?.data?.message || error.message || 'Network error occurred'
+        console.error('Error fetching market data:', error)
+      } finally {
+        this.loading = false
       }
     },
 
-    handleLogout() {
-      authUtils.clearAuthData()
-      this.isLoggedIn = false
-      this.activeTab = 'home'
+    async onMarketSelected(market) {
+      this.selectedMarket = market
+
+      try {
+        const response = await marketAPI.getMarketData(market.market_name)
+        if (response.data.code === '0000000') {
+          // 更新選中市場的詳細數據
+          this.selectedMarket = response.data.data
+        }
+      } catch (error) {
+        console.error('Error fetching market details:', error)
+      }
     },
 
-    showLogin() {
-      // 顯示登入彈窗的邏輯
-      this.showLoginModal = true
+    startAutoRefresh() {
+      this.refreshInterval = setInterval(() => {
+        this.fetchMarketData()
+      }, 30000) // 每30秒更新一次
     },
 
-    checkAuthStatus() {
-      this.isLoggedIn = authUtils.isAuthenticated()
+    formatPrice(price) {
+      return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 8
+      }).format(price)
+    },
+
+    formatChange(change) {
+      const sign = change >= 0 ? '+' : ''
+      return `${sign}${(change * 100).toFixed(2)}%`
+    },
+
+    formatVolume(volume) {
+      if (volume >= 1000000) {
+        return `${(volume / 1000000).toFixed(2)}M`
+      } else if (volume >= 1000) {
+        return `${(volume / 1000).toFixed(2)}K`
+      }
+      return volume.toFixed(2)
+    },
+
+    selectMarket(market) {
+      console.log(market)
+      router.push('/markets/' + market.market_name)
     }
   }
 }
 </script>
 
-<style>
+<style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-.container {
-  background: linear-gradient(180deg, #ff66cc, #9900cc);
-  font-family: 'Press Start 2P', cursive;
-  color: #ffffff;
-  margin: 0;
-  padding: 10px;
-  min-height: 100vh;
-  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAG0lEQVR4AWMAAv+BAgICAgICiAECAwICAgICAgICBtgBc4AAAAASUVORK5CYII=');
-  background-repeat: repeat;
+.market-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid #ff99ff;
+  margin: 15px 0;
 }
 
-.title-bar {
-  background: linear-gradient(90deg, #ff33cc, #cc00ff);
-  color: #ffffff;
+.market-table th, .market-table td {
+  border: 1px solid #ff66cc;
   padding: 8px;
-  font-size: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 2px solid #ff99ff;
-  text-shadow: 1px 1px 2px #330033;
-}
-
-.title-bar button {
-  background: #ff66cc;
-  border: 2px solid #ff99ff;
-  padding: 3px 10px;
-  cursor: pointer;
-  font-family: 'Press Start 2P', cursive;
+  text-align: left;
   font-size: 10px;
   color: #ffffff;
+}
+
+.market-table th {
+  background: linear-gradient(90deg, #cc00ff, #ff33cc);
   text-shadow: 1px 1px #330033;
-  transition: all 0.2s;
 }
 
-.title-bar button:hover {
-  background: #cc00ff;
-  box-shadow: 0 0 5px #ff66cc;
-}
-
-.nav-bar {
-  background: rgba(51, 0, 51, 0.8);
-  border: 2px solid #ff99ff;
-  padding: 8px;
-  margin-bottom: 15px;
-  box-shadow: 0 0 8px #ff66cc;
-}
-
-.nav-bar a {
-  margin-right: 12px;
-  color: #ffccff;
-  text-decoration: none;
-  font-size: 10px;
-  text-shadow: 1px 1px #330033;
+.market-table tbody tr {
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.nav-bar a:hover,
-.nav-bar a.active {
-  color: #ff66cc;
-  text-shadow: 0 0 5px #ff66cc;
-}
-
-.nav-bar a.auth-link {
-  color: #ff66cc;
-  font-weight: bold;
-}
-
-.loading {
-  text-align: center;
-  padding: 50px;
-}
-
-.loading-text {
-  font-size: 12px;
-  color: #ff66cc;
-  animation: pulse 1.5s infinite;
-}
-
-.error {
-  text-align: center;
-  padding: 20px;
-}
-
-.error-text {
-  color: #ff3366;
-  font-size: 10px;
-  margin-bottom: 10px;
-}
-
-.retry-btn {
-  background: #ff66cc;
-  border: 2px solid #ff99ff;
-  padding: 5px 15px;
-  cursor: pointer;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 8px;
-  color: #ffffff;
-}
-
-.retry-btn:hover {
-  background: #cc00ff;
-}
-
-.footer {
-  text-align: center;
-  font-size: 8px;
-  color: #ffccff;
-  margin-top: 15px;
-  text-shadow: 1px 1px #330033;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+.market-table tbody tr:hover {
+  background: rgba(255, 102, 204, 0.2);
 }
 </style>

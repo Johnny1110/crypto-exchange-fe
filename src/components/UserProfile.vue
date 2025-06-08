@@ -2,12 +2,16 @@
   <div class="user-profile" v-if="user">
     <div class="profile-info">
       <span class="welcome-text">Welcome, {{ user.username }}!</span>
-      <div class="user-details">
-        <div class="detail-item">VIP: {{ user.vip_level }}</div>
-        <div class="detail-item">Maker Fee: {{ (user.maker_fee * 100).toFixed(3) }}%</div>
-        <div class="detail-item">Taker Fee: {{ (user.taker_fee * 100).toFixed(3) }}%</div>
-      </div>
+
     </div>
+<!--    <button @click="handleLogout" class="logout-btn">Logout</button>-->
+  </div>
+  <div class="user-details" v-if="user">
+
+      <div class="detail-item">VIP: {{ user.vip_level }}</div>
+      <div class="detail-item">Maker Fee: {{ (user.maker_fee * 100).toFixed(3) }}%</div>
+      <div class="detail-item">Taker Fee: {{ (user.taker_fee * 100).toFixed(3) }}%</div>
+
 <!--    <button @click="handleLogout" class="logout-btn">Logout</button>-->
   </div>
 </template>
@@ -39,25 +43,30 @@ export default {
 <style scoped>
 .user-profile {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid #ff99ff;
   padding: 8px 12px;
   margin-bottom: 10px;
   border-radius: 3px;
+  justify-content: center;
+
 }
 
 .profile-info {
   display: flex;
   flex-direction: column;
   gap: 5px;
-}
 
+}
+.user-details{
+  justify-content: end;
+}
 .welcome-text {
   color: #ff66cc;
-  font-size: 12px;
+  font-size: 24px;
   text-shadow: 5px 5px #330033;
+  box-shadow: 0 0 144px #f4de5f, 0 0 20px #eae585;
 }
 
 .user-details {

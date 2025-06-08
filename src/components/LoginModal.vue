@@ -43,9 +43,7 @@
         <div class="cursor-line">C:\CryptoEx> <span class="cursor">_</span></div>
       </div>
 
-      <div class="footer">
-        CryptoEx Pixel © 2025 - All Rights Reserved
-      </div>
+
     </div>
   </div>
 </template>

@@ -3,8 +3,8 @@
 
     <div class="trading-section">
       <div class="chart-container">
-        <p class="latest-price">Latest Price: {{latestPrice}} {{quoteAsset}}</p>
-        <h3>K-Line Chart ({{ baseAsset }}/ {{quoteAsset}})</h3>
+        <p class="latest-price">Latest Price: {{ latestPrice }} {{ quoteAsset }}</p>
+        <h3>K-Line Chart ({{ baseAsset }}/ {{ quoteAsset }})</h3>
         <canvas id="klineChart"></canvas>
       </div>
 
@@ -22,7 +22,8 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(ask, index) in askSide.slice().reverse().slice(0, 5)" :key="'ask-' + index">
+          <!--          把最小的放在最前面用sort-->
+          <tr v-for="(ask, index) in askSide" :key="'ask-' + index">
             <td>{{ ask.price.toFixed(2) }}</td>
             <td>{{ ask.volume.toFixed(4) }}</td>
             <td>
@@ -47,7 +48,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(bid, index) in bidSide.slice(0, 5)" :key="'bid-' + index">
+          <tr v-for="(bid, index) in bidSide" :key="'bid-' + index">
             <td>{{ bid.price.toFixed(2) }}</td>
             <td>{{ bid.volume.toFixed(4) }}</td>
             <td>
@@ -65,17 +66,19 @@
 
 
       <div class="order-form-container">
-        <h3>Place Order <b>({{activeTab}})</b></h3>
+        <h3>Place Order <b>({{ activeTab }})</b></h3>
 
         <div class="tab-bar">
           <div
               class="tab"
               :class="{ active: activeTab === 'limit' }"
-              @click="activeTab = 'limit'">Limit</div>
+              @click="activeTab = 'limit'">Limit
+          </div>
           <div
               class="tab"
               :class="{ active: activeTab === 'market' }"
-              @click="activeTab = 'market'">Market</div>
+              @click="activeTab = 'market'">Market
+          </div>
         </div>
 
         <!-- Limit Order -->
@@ -129,8 +132,8 @@
         </div>
 
         <div class="balance-section">
-          <h3>Base Balance ({{ baseAsset }}): {{baseBalance}}</h3>
-          <h3>Quote Balance ({{ quoteAsset }}): {{quoteBalance}}</h3>
+          <h3>Base Balance ({{ baseAsset }}): {{ baseBalance }}</h3>
+          <h3>Quote Balance ({{ quoteAsset }}): {{ quoteBalance }}</h3>
         </div>
 
       </div>
@@ -202,19 +205,17 @@
     </div>
 
     <div class="cmd-window" id="cmdOutput">
-      C:\CryptoEx> trading {{baseAsset}}/{{quoteAsset}}<br>
+      C:\CryptoEx> trading {{ baseAsset }}/{{ quoteAsset }}<br>
       Enter order details to trade<br>
       C:\CryptoEx> _
     </div>
-    <div class="footer">
-      CryptoEx Pixel © 2025 - All Rights Reserved
-    </div>
+
   </div>
 </template>
 
 
 <script>
-import { authUtils } from '@/services/auth'
+import {authUtils} from '@/services/auth'
 import {walletAPI, orderBooksAPI, ordersAPI} from '@/services/apiService'
 
 export default {
@@ -382,9 +383,27 @@ export default {
 
         this.latestPrice = data.latest_price;
 
-        this.bidSide = data.bid_side;
-        this.askSide = data.ask_side;
 
+// 假設 data.bid_side 和 data.ask_side 的結構如下：
+// [{ price: 100 }, { price: 200 }, ...]
+
+        let bidSide = data.bid_side;
+        let askSide = data.ask_side;
+
+// 取得最大前五個的 bid_side
+        let topFiveBid = [...bidSide]
+            .sort((a, b) => b.price - a.price) // 由大到小排序
+            .slice(0, 5); // 取前五個
+
+// 取得最小前五個的 ask_side
+        let bottomFiveAsk = [...askSide]
+            .sort((a, b) => a.price - b.price) // 由小到大排序
+            .slice(0, 5) // 取前五個
+            .reverse();
+
+// 返回結果到 this
+        this.bidSide = topFiveBid;
+        this.askSide = bottomFiveAsk;
         // 計算最大量，用於 bar 寬度百分比
         this.maxBidVolume = Math.max(...this.bidSide.map((b) => b.volume));
         this.maxAskVolume = Math.max(...this.askSide.map((a) => a.volume));
@@ -473,7 +492,7 @@ export default {
       this.refreshInterval = setInterval(() => {
         //this.fetchBalances()
         this.fetchOrderBook()
-      },1000) // 每5秒更新一次
+      }, 1000) // 每5秒更新一次
     },
 
   }
@@ -490,15 +509,16 @@ body {
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAG0lEQVR4AWMAAv+BAgICAgICiAECAwICAgICAgICBtgBc4AAAAASUVORK5CYII=');
   background-repeat: repeat;
 }
-.container {
-  background: rgba(51, 0, 51, 0.8);
-  border: 3px solid #ff99ff;
-  width: 900px;
-  margin: 50px auto;
-  padding: 15px;
-  box-shadow: 0 0 10px #ff66cc, 0 0 20px #9900cc;
-  border-radius: 5px;
-}
+
+/*.container {*/
+/*  background: rgba(51, 0, 51, 0.8);*/
+/*  border: 3px solid #ff99ff;*/
+/*  width: 900px;*/
+/*  margin: 50px auto;*/
+/*  padding: 15px;*/
+/*  box-shadow: 0 0 10px #ff66cc, 0 0 20px #9900cc;*/
+/*  border-radius: 5px;*/
+/*}*/
 .title-bar {
   background: linear-gradient(90deg, #ff33cc, #cc00ff);
   color: #ffffff;
@@ -510,6 +530,7 @@ body {
   border: 2px solid #ff99ff;
   text-shadow: 1px 1px 2px #330033;
 }
+
 .title-bar button {
   background: #ff66cc;
   border: 2px solid #ff99ff;
@@ -521,16 +542,19 @@ body {
   text-shadow: 1px 1px #330033;
   transition: all 0.2s;
 }
+
 .title-bar button:hover {
   background: #cc00ff;
   box-shadow: 0 0 5px #ff66cc;
 }
+
 .nav-bar {
   background: rgba(51, 0, 51, 0.8);
   border: 2px solid #ff99ff;
   padding: 8px;
   margin: 15px 0;
 }
+
 .nav-bar a {
   margin-right: 15px;
   color: #ffccff;
@@ -538,22 +562,26 @@ body {
   font-size: 10px;
   text-shadow: 1px 1px #330033;
 }
+
 .nav-bar a:hover {
   color: #ff66cc;
   text-shadow: 0 0 5px #ff66cc;
 }
+
 .balance-section {
   margin: 15px 0;
   font-size: 10px;
   color: #ffccff;
   text-shadow: 1px 1px #330033;
 }
+
 .trading-section {
 
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
 }
+
 .chart-container, .orderbook-container, .order-form-container {
   flex: 1;
   min-width: 280px;
@@ -562,9 +590,11 @@ body {
   padding: 15px;
   box-shadow: inset 0 0 5px #9900cc;
 }
+
 .chart-container canvas {
   max-height: 200px;
 }
+
 .latest-price {
   font-size: 12px;
   font-weight: bold;
@@ -572,6 +602,7 @@ body {
   color: #ffccff;
   text-shadow: 1px 1px #330033;
 }
+
 .orderbook-container h4 {
   font-size: 10px;
   margin: 5px 0;
@@ -579,6 +610,7 @@ body {
   color: #ffccff;
   text-shadow: 1px 1px #330033;
 }
+
 .orderbook-table {
   width: 100%;
   border-collapse: collapse;
@@ -586,38 +618,46 @@ body {
   margin-bottom: 10px;
   color: #ffccff;
 }
+
 .orderbook-table th, .orderbook-table td {
   border: 1px solid #ff99ff;
   padding: 3px;
   text-align: right;
   text-shadow: 1px 1px #330033;
 }
+
 .orderbook-table th {
   background: linear-gradient(90deg, #ff33cc, #cc00ff);
   color: #ffffff;
 }
+
 .orderbook-table.bid tr {
   background: rgba(0, 255, 0, 0.2);
 }
+
 .orderbook-table.ask tr {
   background: rgba(255, 0, 0, 0.2);
 }
+
 .volume-bar {
   display: inline-block;
   height: 8px;
   background: #ff66cc;
   border: 1px solid #ff99ff;
 }
+
 .order-form-container h3 {
   font-size: 12px;
   margin: 5px 0;
   color: #ffccff;
   text-shadow: 1px 1px #330033;
 }
+
 .tab-bar {
   display: flex;
   margin-bottom: 10px;
 }
+
 .tab {
   background: #ff66cc;
   border: 2px solid #ff99ff;
@@ -629,18 +669,22 @@ body {
   text-shadow: 1px 1px #330033;
   transition: all 0.2s;
 }
+
 .tab.active {
   background: #cc00ff;
   border: 2px solid #ff99ff;
   box-shadow: 0 0 5px #ff66cc;
   font-weight: bold;
 }
+
 .tab-content {
 
 }
+
 .tab-content.active {
   display: block;
 }
+
 .order-form-container label {
   display: block;
   font-size: 10px;
@@ -648,6 +692,7 @@ body {
   color: #ffccff;
   text-shadow: 1px 1px #330033;
 }
+
 .order-form-container input {
   width: calc(100% - 14px);
   padding: 6px;
@@ -658,6 +703,7 @@ body {
   color: #ffffff;
   box-shadow: inset 0 0 5px #9900cc;
 }
+
 .order-form-container button {
   background: #ff66cc;
   border: 2px solid #ff99ff;
@@ -672,16 +718,20 @@ body {
   text-shadow: 1px 1px #330033;
   transition: all 0.2s;
 }
+
 .order-form-container button:hover {
   background: #cc00ff;
   box-shadow: 0 0 8px #ff66cc;
 }
+
 .buy-btn {
   background: #00cc00;
 }
+
 .sell-btn {
   background: #cc0000;
 }
+
 .orders-table {
   width: 100%;
   border-collapse: collapse;
@@ -691,16 +741,19 @@ body {
   font-size: 7px;
   color: #ffccff;
 }
+
 .orders-table th, .orders-table td {
   border: 1px solid #ff99ff;
   padding: 5px;
   text-align: left;
   text-shadow: 1px 1px #330033;
 }
+
 .orders-table th {
   background: linear-gradient(90deg, #ff33cc, #cc00ff);
   color: #ffffff;
 }
+
 .cmd-window {
   background: #1a001a;
   color: #ff66cc;
@@ -713,6 +766,7 @@ body {
   box-shadow: inset 0 0 10px #9900cc;
   font-size: 12px;
 }
+
 .footer {
   text-align: center;
   font-size: 8px;
