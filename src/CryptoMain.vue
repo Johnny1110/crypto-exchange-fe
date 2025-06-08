@@ -52,7 +52,7 @@
 
       <div class="error" v-if="error">
         <div class="error-text">{{ error }}</div>
-        <button @click="fetchMarketData" class="retry-btn">Retry</button>
+<!--        <button @click="fetchMarketData" class="retry-btn">Retry</button>-->
       </div>
 
 
