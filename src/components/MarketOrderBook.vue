@@ -1,20 +1,5 @@
 <template>
-  <div class="container">
-    <div class="title-bar">
-      <span>CryptoEx Pixel - Trading ({{ baseAsset }}/ {{quoteAsset}})</span>
-      <div>
-        <button>_</button>
-        <button>□</button>
-        <button>X</button>
-      </div>
-    </div>
-    <div class="nav-bar">
-      <a href="#">Home</a>
-      <a href="#">Trade</a>
-      <a href="#">Wallet</a>
-      <a href="#">Account</a>
-      <a href="#">Logout</a>
-    </div>
+  <div>
 
     <div class="trading-section">
       <div class="chart-container">
@@ -563,6 +548,7 @@ body {
   text-shadow: 1px 1px #330033;
 }
 .trading-section {
+
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
@@ -701,7 +687,7 @@ body {
   background: rgba(255, 255, 255, 0.1);
   border: 2px solid #ff99ff;
   margin: 15px 0;
-  font-size: 10px;
+  font-size: 7px;
   color: #ffccff;
 }
 .orders-table th, .orders-table td {

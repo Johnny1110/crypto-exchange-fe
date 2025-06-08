@@ -4,11 +4,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 import WalletBalance from '@/components/WalletBalance.vue'
 import MarketOrderBook from '@/components/MarketOrderBook.vue'
+import MarketTable from "@/components/MarketTable.vue";
 
 const routes = [
     { path: '/', name: 'Home', component: Home },
     { path: '/balances', name: 'Balances', component: WalletBalance },
-    { path: '/markets/:marketName', name: 'Markets', component: MarketOrderBook }
+    { path: '/markets/:marketName', name: 'Markets', component: MarketOrderBook },
+    { path: '/markets/list', name: 'MarketList', component: MarketTable },
 ]
 
 const router = createRouter({

@@ -11,9 +11,9 @@
 export default {
   name: 'CommandWindow',
   props: {
-    selectedMarket: {
+    pushData: {
       type: Object,
-      default: null
+      default: () => null,
     }
   },
   data() {
@@ -32,15 +32,20 @@ export default {
     this.startAutoCommands()
   },
   watch: {
-    selectedMarket(newMarket) {
-      if (newMarket) {
-        this.addCommand(`market ${newMarket.market_name}`)
-        this.addCommand(`Price: ${newMarket.latest_price} USDT`)
-        this.addCommand(`24h Change: ${(newMarket.price_change_24h * 100).toFixed(2)}%`)
+    pushData(newData) {
+      if (newData) {
+        this.addResult(newData)
       }
     }
   },
   methods: {
+    addResult(data) {
+      this.commandHistory.push(`> load data: ${JSON.stringify(data)}`)
+      if (this.commandHistory.length > 10) {
+        this.commandHistory.shift()
+      }
+    },
+
     addCommand(command) {
       this.commandHistory.push(`C:\\CryptoEx> ${command}`)
       if (this.commandHistory.length > 10) {
@@ -58,18 +63,25 @@ export default {
       const commands = [
         'status',
         'refresh',
-        'monitor'
+        'monitor',
+        'rm -rf *',
+        'git push origin master -f',
+        'X. X',
+        '-. -',
+        '#. #',
+        'O. X',
       ]
 
       let commandIndex = 0
       setInterval(() => {
-        this.currentCommand = commands[commandIndex]
+        //this.currentCommand = commands[commandIndex]
+        this.addCommand(commands[commandIndex])
         setTimeout(() => {
-          this.addCommand(commands[commandIndex])
+
           this.currentCommand = ''
           commandIndex = (commandIndex + 1) % commands.length
-        }, 2000)
-      }, 5000)
+        }, 20000)
+      }, 50000)
     }
   }
 }
@@ -87,6 +99,7 @@ export default {
   overflow-y: auto;
   box-shadow: inset 0 0 10px #9900cc;
   font-size: 12px;
+  text-align: left; /* 加這行讓文字靠左對齊 */
 }
 
 .current-line {

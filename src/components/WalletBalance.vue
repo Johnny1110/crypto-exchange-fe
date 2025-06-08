@@ -1,23 +1,6 @@
 <template>
   <div class="wallet-balance">
-    <div class="container">
-      <div class="title-bar">
-        <span>CryptoEx 2000 - Wallet Balance</span>
-        <div>
-          <button>_</button>
-          <button>□</button>
-          <button>X</button>
-        </div>
-      </div>
-
-      <div class="nav-bar">
-        <a href="#" @click.prevent="$emit('navigate', 'home')">Home</a>
-        <a href="#" @click.prevent="$emit('navigate', 'trade')">Trade</a>
-        <a href="#" class="active">Wallet</a>
-        <a href="#" @click.prevent="$emit('navigate', 'account')">Account</a>
-        <a href="#" @click.prevent="$emit('logout')" class="auth-link">Logout</a>
-      </div>
-
+    <div>
       <!-- 載入中狀態 -->
       <div class="loading" v-if="loading">
         <div class="loading-text">Loading wallet balances...</div>
@@ -89,21 +72,9 @@
           </table>
         </div>
 
-        <!-- 命令列視窗 -->
-        <div class="cmd-window">
-          <div class="cmd-header">Wallet Command Interface</div>
-          <div class="cmd-content">
-            C:\CryptoEx> wallet balances<br>
-            <pre>{{ formatBalancesForCmd() }}</pre>
-            C:\CryptoEx> _
-          </div>
-        </div>
-      </template>
+        <CommandWindow :push-data="apiResponse" />
 
-      <div class="footer">
-        CryptoEx 2000 © 2025 - All Rights Reserved |
-        Last Updated: {{ lastUpdated }}
-      </div>
+      </template>
     </div>
   </div>
 </template>
@@ -111,12 +82,15 @@
 <script>
 import { authUtils } from '@/services/auth'
 import { walletAPI } from '@/services/apiService'
+import CommandWindow from "@/components/CommandWindow.vue";
 
 export default {
   name: 'WalletBalance',
+  components: {CommandWindow},
   emits: ['navigate', 'logout'],
   data() {
     return {
+      apiResponse: {},
       balances: [],
       loading: false,
       error: null,
@@ -163,6 +137,7 @@ export default {
 
         if (response.data.code === '0000000') {
           this.balances = response.data.data
+          this.apiResponse = response.data
           this.lastUpdated = new Date().toLocaleTimeString()
         } else {
           throw new Error(response.data.message || 'Failed to fetch balances')
@@ -193,7 +168,7 @@ export default {
 
     getStatusText(balance) {
       if (balance.total === 0) return 'Empty'
-      if (balance.locked > 0) return 'Locked'
+      if (balance.locked > 0) return 'Has Open Order'
       return 'Available'
     },
 
@@ -217,7 +192,7 @@ export default {
     startAutoRefresh() {
       this.refreshInterval = setInterval(() => {
         this.fetchBalances()
-      }, 60000) // 每60秒更新一次
+      }, 30000) // 每60秒更新一次
     }
   }
 }
@@ -440,8 +415,8 @@ export default {
 }
 
 .status-badge.status-locked {
-  background: #ff6666;
-  color: #fff;
+  background: #e7e337;
+  color: #070707;
 }
 
 .status-badge.status-available {

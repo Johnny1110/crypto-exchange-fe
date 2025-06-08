@@ -19,20 +19,77 @@
     </tr>
     </tbody>
   </table>
+
+
+  <CommandWindow :push-data="apiResponse" />
+
+
 </template>
 
 <script>
 import router from "@/router";
+import {marketAPI} from "@/services/apiService";
+import CommandWindow from "@/components/CommandWindow.vue";
 
 export default {
   name: 'MarketTable',
-  props: {
-    markets: {
-      type: Array,
-      default: () => []
+  components: {CommandWindow},
+  data() {
+    return {
+      markets: [],
+      apiResponse: {}
     }
   },
+
+  mounted() {
+    this.fetchMarketData()
+    this.startAutoRefresh()
+  },
+
   methods: {
+    async fetchMarketData() {
+      this.loading = true
+      this.error = null
+
+      try {
+        const response = await marketAPI.getAllMarkets()
+
+        if (response.data.code === '0000000') {
+          // eslint-disable-next-line vue/no-mutating-props
+          this.markets = response.data.data
+          this.apiResponse = response.data
+          this.lastUpdated = new Date().toLocaleTimeString()
+        } else {
+          throw new Error(response.data.message || 'Failed to fetch market data')
+        }
+      } catch (error) {
+        this.error = error.response?.data?.message || error.message || 'Network error occurred'
+        console.error('Error fetching market data:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async onMarketSelected(market) {
+      this.selectedMarket = market
+
+      try {
+        const response = await marketAPI.getMarketData(market.market_name)
+        if (response.data.code === '0000000') {
+          // 更新選中市場的詳細數據
+          this.selectedMarket = response.data.data
+        }
+      } catch (error) {
+        console.error('Error fetching market details:', error)
+      }
+    },
+
+    startAutoRefresh() {
+      this.refreshInterval = setInterval(() => {
+        this.fetchMarketData()
+      }, 30000) // 每30秒更新一次
+    },
+
     formatPrice(price) {
       return new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,

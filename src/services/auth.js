@@ -25,6 +25,7 @@ export const authUtils = {
     clearAuthData() {
         localStorage.removeItem('cryptoex_token')
         localStorage.removeItem('cryptoex_username')
+        localStorage.removeItem('user_profile')
     },
 
     // 格式化日期
@@ -35,5 +36,18 @@ export const authUtils = {
     // 格式化費率
     formatFeeRate(rate) {
         return (rate * 100).toFixed(3) + '%'
+    },
+    setUserProfile(userProfile) {
+        localStorage.setItem('user_profile', JSON.stringify(userProfile));
+    },
+
+    getUserProfile() {
+        const data = localStorage.getItem('user_profile');
+        try {
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            console.error('Failed to parse user profile from localStorage', e);
+            return null;
+        }
     }
 }

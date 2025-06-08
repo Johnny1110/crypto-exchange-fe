@@ -8,18 +8,25 @@
         <div class="detail-item">Taker Fee: {{ (user.taker_fee * 100).toFixed(3) }}%</div>
       </div>
     </div>
-    <button @click="handleLogout" class="logout-btn">Logout</button>
+<!--    <button @click="handleLogout" class="logout-btn">Logout</button>-->
   </div>
 </template>
 
 <script>
+import {authUtils} from "@/services/auth";
+
 export default {
   name: 'UserProfile',
-  props: {
-    user: {
-      type: Object,
-      default: null
+  data() {
+    return {
+      user: {}
     }
+  },
+
+  mounted() {
+    // eslint-disable-next-line vue/no-mutating-props
+    this.user = authUtils.getUserProfile()
+    console.log("u_prof", this.user)
   },
   methods: {
     handleLogout() {
@@ -49,8 +56,8 @@ export default {
 
 .welcome-text {
   color: #ff66cc;
-  font-size: 10px;
-  text-shadow: 1px 1px #330033;
+  font-size: 12px;
+  text-shadow: 5px 5px #330033;
 }
 
 .user-details {
@@ -59,7 +66,7 @@ export default {
 }
 
 .detail-item {
-  font-size: 8px;
+  font-size: 10px;
   color: #ffccff;
 }
 
