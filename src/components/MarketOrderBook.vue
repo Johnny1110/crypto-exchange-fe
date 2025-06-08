@@ -205,11 +205,18 @@
     </div>
 
     <div class="cmd-window" id="cmdOutput">
-      C:\CryptoEx> trading {{ baseAsset }}/{{ quoteAsset }}<br>
-      Enter order details to trade<br>
-      C:\CryptoEx> _
+      <div class="cmd-output">
+        <span v-if="cmdOutputList.length === 0">No command output yet.</span>
+        <ul>
+          <div v-for="(output, index) in cmdOutputList" :key="'output-' + index">{{ output }} <span class="cursor">_</span></div>
+        </ul>
+      </div>
     </div>
-
+    <CommonModal
+        :visible="showModal"
+        @close="showModal = false"
+        :commonData="commonData.data"
+    />
   </div>
 </template>
 
@@ -217,10 +224,13 @@
 <script>
 import {authUtils} from '@/services/auth'
 import {walletAPI, orderBooksAPI, ordersAPI} from '@/services/apiService'
+import CommonModal from "@/components/common/CommonModal.vue";
 
 export default {
   name: 'MarketOrderBook',
   emits: ['navigate', 'logout'],
+  components: {CommonModal},
+
   data() {
     return {
       latestPrice: 0.0,
@@ -241,6 +251,15 @@ export default {
       askSide: [],
       maxBidVolume: 1,
       maxAskVolume: 1,
+      cmdOutputList: [],
+      showModal: false,
+      commonData: {
+        data: {
+          isLoggedIn: false,
+          "context": "",
+          "title": "",
+        }
+      },
     };
   },
 
@@ -261,6 +280,11 @@ export default {
     await this.fetchClosedOrders()
     await this.fetchBalances()
     this.startAutoRefresh()
+    const baseAsset = 'ETH'; // Example dynamic data
+    const quoteAsset = 'USD'; // Example dynamic data
+    this.cmdOutputList.push(`C:\\CryptoEx> trading ${baseAsset}/${quoteAsset}
+    Loading market data...`);
+
   },
 
 
@@ -279,6 +303,7 @@ export default {
     }
   },
   methods: {
+
     async cancelOrder(orderId) {
       try {
         // 檢查是否已登入
@@ -356,11 +381,17 @@ export default {
       } else {
         await ordersAPI.placeLimitSellOrder(this.market, this.limitPrice, this.limitAmount)
       }
-
-      alert("limit order placed!")
+      this.showModal = true
+      this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
+          "Price: " + this.limitPrice + ", Amount: " + this.limitAmount + ".\n" +
+          "Please check your open orders.";
+      this.commonData.data.title = "Market Order Confirmation"
       this.fetchOpenOrders()
       this.fetchClosedOrders()
       this.refreshBalances()
+      this.cmdOutputList.push(`C:\\CryptoEx> trading ${this.market} - ${side} order placed.\n` +
+          `Price: ${this.limitPrice}, Amount: ${this.limitAmount}.\n`);
+
     },
 
     async placeMarketOrder(side) {
@@ -370,7 +401,6 @@ export default {
         await ordersAPI.placeMarketSellOrder(this.market, this.marketSellSize)
       }
 
-      alert("market order placed!")
       this.fetchOpenOrders()
       this.fetchClosedOrders()
       this.refreshBalances()
