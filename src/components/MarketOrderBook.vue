@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div class="title-bar">
-      <span>CryptoEx Pixel - Trading (BTC/USD)</span>
+      <span>CryptoEx Pixel - Trading ({{ baseAsset }}/ {{quoteAsset}})</span>
       <div>
         <button>_</button>
         <button>□</button>
@@ -15,14 +15,11 @@
       <a href="#">Account</a>
       <a href="#">Logout</a>
     </div>
-    <div class="balance-section">
-      <p>Base Balance (BTC): 0.5234</p>
-      <p>Quote Balance (USD): 15000.00</p>
-    </div>
+
     <div class="trading-section">
       <div class="chart-container">
-        <p class="latest-price">Latest Price: 69234.56 USD</p>
-        <h3>K-Line Chart (BTC/USD)</h3>
+        <p class="latest-price">Latest Price: {{latestPrice}} {{quoteAsset}}</p>
+        <h3>K-Line Chart ({{ baseAsset }}/ {{quoteAsset}})</h3>
         <canvas id="klineChart"></canvas>
       </div>
 
@@ -33,10 +30,10 @@
         <table class="orderbook-table ask">
           <thead>
           <tr>
-            <th>Price (USDT)</th>
-            <th>Amount (ETH)</th>
+            <th>Price ({{ quoteAsset }})</th>
+            <th>Amount ({{ baseAsset }})</th>
             <th>Volume Bar</th>
-            <th>Total (USDT)</th>
+            <th>Total ({{ quoteAsset }})</th>
           </tr>
           </thead>
           <tbody>
@@ -58,10 +55,10 @@
         <table class="orderbook-table bid">
           <thead>
           <tr>
-            <th>Price (USDT)</th>
-            <th>Amount (ETH)</th>
+            <th>Price ({{ quoteAsset }})</th>
+            <th>Amount ({{ baseAsset }})</th>
             <th>Volume Bar</th>
-            <th>Total (USDT)</th>
+            <th>Total ({{ quoteAsset }})</th>
           </tr>
           </thead>
           <tbody>
@@ -97,7 +94,7 @@
 
         <!-- Limit Order -->
         <div v-show="activeTab === 'limit'" class="tab-content">
-          <label for="limit-price">Price (USDT):</label>
+          <label for="limit-price">Price ({{ quoteAsset }}):</label>
           <input
               id="limit-price"
               type="number"
@@ -105,7 +102,7 @@
               placeholder="Enter price"
               step="0.01">
 
-          <label for="limit-amount">Amount (ETH):</label>
+          <label for="limit-amount">Amount ({{ baseAsset }}):</label>
           <input
               id="limit-amount"
               type="number"
@@ -122,7 +119,7 @@
         <!-- Market Order -->
         <div v-show="activeTab === 'market'" class="tab-content">
 
-          <label for="sell-size">Sell Size (ETH):</label>
+          <label for="sell-size">Sell Size ({{ baseAsset }}):</label>
           <input
               id="sell-size"
               type="number"
@@ -130,7 +127,7 @@
               placeholder="Enter Sell Size"
               step="0.00001">
 
-          <label for="Buy-amount">Buy Amount (USDT):</label>
+          <label for="Buy-amount">Buy Amount ({{ quoteAsset }}):</label>
 
           <input
               id="buy-amount"
@@ -144,6 +141,12 @@
             <button @click="placeMarketOrder('sell')" class="sell-btn">Sell</button>
           </div>
         </div>
+
+        <div class="balance-section">
+          <h3>Base Balance ({{ baseAsset }}): {{baseBalance}}</h3>
+          <h3>Quote Balance ({{ quoteAsset }}): {{quoteBalance}}</h3>
+        </div>
+
       </div>
 
 
@@ -156,9 +159,9 @@
           <th>Order ID</th>
           <th>Type</th>
           <th>Side</th>
-          <th>Price (USDT)</th>
-          <th>Original Size (ETH)</th>
-          <th>Filled (ETH)</th>
+          <th>Price ({{ quoteAsset }})</th>
+          <th>Original Size ({{ baseAsset }})</th>
+          <th>Filled ({{ baseAsset }})</th>
           <th>Status</th>
           <th>Cancel</th>
         </tr>
@@ -188,9 +191,9 @@
           <th>Order ID</th>
           <th>Type</th>
           <th>Side</th>
-          <th>Price (USDT)</th>
-          <th>Amount (ETH)</th>
-          <th>Average Price (USDT)</th>
+          <th>Price ({{ quoteAsset }})</th>
+          <th>Amount ({{ baseAsset }})</th>
+          <th>Average Price ({{ quoteAsset }})</th>
           <th>Fees</th>
           <th>Fee Asset</th>
           <th>Status</th>
@@ -213,7 +216,7 @@
     </div>
 
     <div class="cmd-window" id="cmdOutput">
-      C:\CryptoEx> trading BTC/USD<br>
+      C:\CryptoEx> trading {{baseAsset}}/{{quoteAsset}}<br>
       Enter order details to trade<br>
       C:\CryptoEx> _
     </div>
@@ -233,10 +236,15 @@ export default {
   emits: ['navigate', 'logout'],
   data() {
     return {
+      latestPrice: 0.0,
       openOrders: [],
       orderHistory: [],
       activeTab: 'limit',
-      market: "ETH-USDT",
+      market: "",
+      baseAsset: "",
+      quoteAsset: "",
+      baseBalance: "",
+      quoteBalance: "",
       limitPrice: 0.0,
       limitAmount: 0.0,
       marketSellSize: 0.0,
@@ -250,6 +258,17 @@ export default {
   },
 
   async mounted() {
+    const marketName = this.$route.params.marketName // 從路由中取得參數
+    if (!marketName) {
+      console.error('No market name in route')
+      return
+    }
+
+    this.market = marketName
+    var assets = marketName.split('-')
+    this.baseAsset = assets[0]
+    this.quoteAsset = assets[1]
+
     await this.fetchOrderBook()
     await this.fetchOpenOrders()
     await this.fetchClosedOrders()
@@ -286,6 +305,7 @@ export default {
           alert("order canceled")
           this.fetchOpenOrders()
           this.fetchClosedOrders()
+          this.refreshBalances()
         } else {
           throw new Error(response.data.message || 'failed cancel')
         }
@@ -353,6 +373,7 @@ export default {
       alert("limit order placed!")
       this.fetchOpenOrders()
       this.fetchClosedOrders()
+      this.refreshBalances()
     },
 
     async placeMarketOrder(side) {
@@ -365,12 +386,15 @@ export default {
       alert("market order placed!")
       this.fetchOpenOrders()
       this.fetchClosedOrders()
+      this.refreshBalances()
     },
 
     async fetchOrderBook() {
       try {
-        const res = await orderBooksAPI.getOrderBook("ETH-USDT");
+        const res = await orderBooksAPI.getOrderBook(this.market);
         const data = res.data.data;
+
+        this.latestPrice = data.latest_price;
 
         this.bidSide = data.bid_side;
         this.askSide = data.ask_side;
@@ -397,6 +421,17 @@ export default {
 
         if (response.data.code === '0000000') {
           this.balances = response.data.data
+
+          this.balances.forEach(b => {
+            console.log(b)
+            if (b.asset === this.baseAsset) {
+              this.baseBalance = parseFloat(b.total).toFixed(4); // 顯示小數點後 4 位
+            }
+            if (b.asset === this.quoteAsset) {
+              this.quoteBalance = parseFloat(b.total).toFixed(2); // 顯示小數點後 2 位
+            }
+          })
+
           this.lastUpdated = new Date().toLocaleTimeString()
         } else {
           throw new Error(response.data.message || 'Failed to fetch balances')
