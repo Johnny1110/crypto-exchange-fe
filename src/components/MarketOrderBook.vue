@@ -22,7 +22,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(ask, index) in askSide.slice().reverse()" :key="'ask-' + index">
+          <tr v-for="(ask, index) in askSide.slice().reverse().slice(0, 5)" :key="'ask-' + index">
             <td>{{ ask.price.toFixed(2) }}</td>
             <td>{{ ask.volume.toFixed(4) }}</td>
             <td>
@@ -47,7 +47,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(bid, index) in bidSide" :key="'bid-' + index">
+          <tr v-for="(bid, index) in bidSide.slice(0, 5)" :key="'bid-' + index">
             <td>{{ bid.price.toFixed(2) }}</td>
             <td>{{ bid.volume.toFixed(4) }}</td>
             <td>
@@ -58,6 +58,7 @@
             </td>
             <td>{{ (bid.price * bid.volume).toFixed(2) }}</td>
           </tr>
+
           </tbody>
         </table>
       </div>
