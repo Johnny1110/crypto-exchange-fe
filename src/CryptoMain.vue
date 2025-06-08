@@ -14,12 +14,10 @@
       <LoginModal
           :visible="showLoginModal"
           @close="closeLoginModal"
-          @login-success="onLoginSuccess"
       />
       <CommonModal
           :visible="showModal"
           @close="showModal = false"
-          @login-success="onLoginSuccess"
           :commonData="commonData.data"
       />
 
@@ -43,6 +41,7 @@
       <!-- User Profile Section -->
       <UserProfile
           v-if="isLoggedIn"
+          v-model="isLoggedIn"
           @logout="handleLogout"
       />
 
@@ -52,7 +51,7 @@
 
       <div class="error" v-if="error">
         <div class="error-text">{{ error }}</div>
-<!--        <button @click="fetchMarketData" class="retry-btn">Retry</button>-->
+        <!--        <button @click="fetchMarketData" class="retry-btn">Retry</button>-->
       </div>
 
 
@@ -77,40 +76,44 @@ import {userAPI} from "@/services/apiService";
 import {onMounted, reactive, ref} from "vue";
 
 
- let userProfile = reactive({data:{
-     "id": "",
-     "username": "",
-     "vip_level": null,
-     "maker_fee": null,
-     "taker_fee": null,
-     "created_at": null
-   }});
- let commonData = reactive({data:{
-     "context": "",
-     "title": "",
-   }});
+let userProfile = reactive({
+  data: {
+    "id": "",
+    "username": "",
+    "vip_level": null,
+    "maker_fee": null,
+    "taker_fee": null,
+    "created_at": null
+  }
+});
+let commonData = reactive({
+  data: {
+    "context": "",
+    "title": "",
+  }
+});
 let activeTab = ref('home')
 let isLoggedIn = ref(false)
 let showLoginModal = ref(false)
 let loading = ref(false)
 let error = ref(false)
 let showModal = ref(false)
-let lastUpdated = ref(new  Date().getFullYear().valueOf()+ '-'
-    + (new Date().getMonth() + 1).toString().padStart(2, '0') )
+let lastUpdated = ref(new Date().getFullYear().valueOf() + '-'
+    + (new Date().getMonth() + 1).toString().padStart(2, '0'))
 
 
 onMounted(() => {
   checkAuthStatus()
 })
 const onLoginSuccess = async () => {
-  isLoggedIn.value = true
   // 獲取用戶詳細資料
   try {
     const response = await userAPI.getProfile();
     if (response.data.code === '0000000') {
-      console.log('User profile fetched successfully:', response.data.data)
       userProfile.data = response.data.data;
       authUtils.setUserProfile(response.data.data)
+      isLoggedIn.value = true
+
     }
   } catch (error) {
     console.error('Failed to fetch user profile:', error)
@@ -138,12 +141,15 @@ const checkAuthStatus = async () => {
     }
   }
 }
-const closeLoginModal = () => {
+const closeLoginModal = async (showModalFlag = false) => {
   showLoginModal.value = false
   commonData.data.context = 'Login Successfully'
   commonData.data.title = 'NOTIFY'
-  showModal.value = true
-
+  if (showModalFlag) {
+    showModal.value = true;
+    // isLoggedIn.value = true
+    await onLoginSuccess();
+  }
 }
 
 </script>

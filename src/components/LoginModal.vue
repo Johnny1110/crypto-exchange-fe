@@ -4,7 +4,7 @@
       <div class="title-bar">
         <span>CryptoEx Pixel - {{ isLoginMode ? 'Login' : 'Register' }}</span>
         <div>
-          <button @click="closeModal">X</button>
+          <button @click="closeModal(false)">X</button>
         </div>
       </div>
 
@@ -49,7 +49,7 @@
 </template>
 
 <script>
-import { userAPI } from '@/services/apiService'
+import {userAPI} from '@/services/apiService'
 import {authUtils} from "@/services/auth";
 
 export default {
@@ -111,7 +111,7 @@ export default {
                 username: this.username,
                 token: response.data.data.token
               })
-              this.closeModal()
+              this.closeModal(true)
             }, 1500)
           } else {
             // 註冊成功
@@ -139,8 +139,8 @@ export default {
       this.resetCmdOutput()
     },
 
-    closeModal() {
-      this.$emit('close')
+    closeModal(flag) {
+      this.$emit('close', flag);
     },
 
     resetForm() {
@@ -317,8 +317,12 @@ export default {
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
 }
 
 .footer {
