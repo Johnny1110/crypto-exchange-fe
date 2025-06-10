@@ -23,18 +23,18 @@
 
       <div class="nav-bar">
         <a>
-          <router-link to="/" @click.prevent="activeTab = 'Home'" :class="{ active: activeTab === 'Home' }">Home
+          <router-link to="/" @click.prevent="activeTab = 'Home'" :class="{ active: activeTab === 'Home' }">[💹]Markets
           </router-link>
         </a>
-        <a href="#" @click.prevent="activeTab = 'trade'" :class="{ active: activeTab === 'trade' }">Trade</a>
+<!--        <a href="#" @click.prevent="activeTab = 'trade'" :class="{ active: activeTab === 'trade' }">Trade</a>-->
         <a>
           <router-link to="/balances" @click.prevent="activeTab = 'balances'"
-                       :class="{ active: activeTab === 'balances' }">Wallet
+                       :class="{ active: activeTab === 'balances' }">[💲]Wallet
           </router-link>
         </a>
-        <a href="#" @click.prevent="activeTab = 'account'" :class="{ active: activeTab === 'account' }">Account</a>
+<!--        <a href="#" @click.prevent="activeTab = 'account'" :class="{ active: activeTab === 'account' }">Account</a>-->
         <a href="#" @click.prevent="isLoggedIn ? handleLogout() : showLogin()" class="auth-link">
-          {{ isLoggedIn ? 'Logout' : 'Login' }}
+          {{ isLoggedIn ? '[👋]Logout' : '[🎉]Login' }}
         </a>
       </div>
 
@@ -201,17 +201,17 @@ const closeLoginModal = async (showModalFlag = false) => {
 
 .nav-bar {
   background: rgba(51, 0, 51, 0.8);
-  border: 2px solid #ff99ff;
-  padding: 8px;
-  margin-bottom: 15px;
-  box-shadow: 0 0 8px #ff66cc;
+  border: 1px solid #f599ff;
+  padding: 18px;
+  margin-bottom: 10px;
+  box-shadow: 0 0 8px #ff6694;
 }
 
 .nav-bar a {
   margin-right: 12px;
-  color: #ffccff;
+  color: #fa1875;
   text-decoration: none;
-  font-size: 10px;
+  font-size: 14px;
   text-shadow: 1px 1px #330033;
   cursor: pointer;
 }
@@ -223,7 +223,7 @@ const closeLoginModal = async (showModalFlag = false) => {
 }
 
 .nav-bar a.auth-link {
-  color: #ff66cc;
+  color: #fff266;
   font-weight: bold;
 }
 

@@ -5,6 +5,9 @@
       <div class="chart-container">
         <p class="latest-price">Latest Price: {{ latestPrice }} {{ quoteAsset }}</p>
         <h3>K-Line Chart ({{ baseAsset }}/ {{ quoteAsset }})</h3>
+        <p>//TODO: impl with TradingView</p>
+        <p>//TODO: impl with TradingView</p>
+        <p>//TODO: impl with TradingView</p>
         <canvas id="klineChart"></canvas>
       </div>
 
@@ -24,8 +27,8 @@
           <tbody>
           <!--          把最小的放在最前面用sort-->
           <tr v-for="(ask, index) in askSide" :key="'ask-' + index">
-            <td>{{ ask.price.toFixed(2) }}</td>
-            <td>{{ ask.volume.toFixed(4) }}</td>
+            <td>{{ ask.price.toFixed(3) }}</td>
+            <td>{{ ask.volume.toFixed(3) }}</td>
             <td>
               <div
                   class="volume-bar"
@@ -49,8 +52,8 @@
           </thead>
           <tbody>
           <tr v-for="(bid, index) in bidSide" :key="'bid-' + index">
-            <td>{{ bid.price.toFixed(2) }}</td>
-            <td>{{ bid.volume.toFixed(4) }}</td>
+            <td>{{ bid.price.toFixed(3) }}</td>
+            <td>{{ bid.volume.toFixed(3) }}</td>
             <td>
               <div
                   class="volume-bar"
@@ -299,6 +302,9 @@ export default {
     this.quoteAsset = assets[1]
 
     await this.fetchOrderBook()
+
+    this.limitPrice = this.latestPrice
+
     await this.fetchOpenOrders()
     await this.fetchClosedOrders()
     await this.fetchBalances()
@@ -414,35 +420,91 @@ export default {
 
     },
     async placeLimitOrder(side) {
+
       if (side === 'Buy') {
+        if (this.limitAmount <= 0) {
+          alert("[WARNING]: size must greater than 0")
+          return
+        }
+        if (this.limitPrice <= 0) {
+          alert("[WARNING]: limit price must greater than 0")
+          return
+        }
         await ordersAPI.placeLimitBuyOrder(this.market, this.limitPrice, this.limitAmount)
+
       } else {
-        await ordersAPI.placeLimitSellOrder(this.market, this.limitPrice, this.limitAmount)
+        if (this.limitAmount > this.baseBalance) {
+          alert("insufficient " + this.baseAsset + " balance")
+          return
+        }
+        response = await ordersAPI.placeLimitSellOrder(this.market, this.limitPrice, this.limitAmount)
       }
-      this.showModal = true
-      this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
-          "Price: " + this.limitPrice + ", Amount: " + this.limitAmount + ".\n" +
-          "Please check your open orders.";
-      this.commonData.data.title = "Market Order Confirmation"
-      this.fetchOpenOrders()
-      this.fetchClosedOrders()
-      this.refreshBalances()
-      this.cmdOutputList.push(`C:\\CryptoEx> trading ${this.market} - ${side} order placed.\n` +
-          `Price: ${this.limitPrice}, Amount: ${this.limitAmount}.\n`);
+
+      if (response.data.code === '0000000') {
+        this.showModal = true
+        this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
+            "Price: " + this.limitPrice + ", Amount: " + this.limitAmount + ".\n" +
+            "Please check your orders.";
+        this.commonData.data.title = "Limit Order Confirmation"
+        this.fetchOpenOrders()
+        this.fetchClosedOrders()
+        this.refreshBalances()
+        this.cmdOutputList.push(`C:\\CryptoEx> trading ${this.market} - ${side} order placed.\n` +
+            `Price: ${this.limitPrice}, Amount: ${this.limitAmount}.\n`);
+      } else {
+        this.showModal = true
+        this.commonData.data.context = "!Failed placed " + side + " order for " + this.market + ".\n" +
+            "Reason: " + response.data.message;
+        this.commonData.data.title = "Limit Order Failed"
+      }
+
+
 
     },
 
     async placeMarketOrder(side) {
       console.log('Placing market order:', side, this.market);
       if (side === 'Buy') {
+        if (this.marketBuyAmount <= 0) {
+            alert("[WARNING]: quote amount must greater than 0")
+            return
+          }
+
+          if (this.marketBuyAmount > this.quoteBalance) {
+            alert("insufficient " + this.quoteAsset + " balance")
+            return
+          }
         await ordersAPI.placeMarketBuyOrder(this.market, this.marketBuyAmount)
       } else {
-        await ordersAPI.placeMarketSellOrder(this.market, this.marketSellSize)
+        if (this.marketSellSize <= 0) {
+          alert("[WARNING]: quote amount must greater than 0")
+          return
+        }
+
+        if (this.marketSellSize > this.baseBalance) {
+          alert("insufficient " + this.baseAsset + " balance")
+          return
+        }
+
+        response = await ordersAPI.placeMarketSellOrder(this.market, this.marketSellSize)
+        if (response.data.code === '0000000') {
+          this.commonData.data.title = "Market Order Confirmation"
+          this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
+              " Sell Size: " + this.marketSellSize + ".\n" +
+              "Please check your orders.";
+        } else {
+          this.commonData.data.title = "Market Order Failed"
+          this.commonData.data.context = "!Failed placed " + side + " order for " + this.market + ".\n" +
+              "Reason:" + response.data.message;
+        }
       }
+
+      this.showModal = true
 
       this.fetchOpenOrders()
       this.fetchClosedOrders()
       this.refreshBalances()
+      this.cmdOutputList.push(`C:\\CryptoEx> trading ${this.market} - ${side} order placed.\n`);
     },
 
     async fetchOrderBook() {
@@ -663,7 +725,7 @@ body {
 }
 
 .chart-container canvas {
-  max-height: 200px;
+  max-height: 300px;
 }
 
 .latest-price {
@@ -675,11 +737,11 @@ body {
 }
 
 .orderbook-container h4 {
-  font-size: 10px;
-  margin: 5px 0;
+  font-size: 11px;
+  margin: 10px 0;
   border-bottom: 1px solid #ff99ff;
-  color: #ffccff;
-  text-shadow: 1px 1px #330033;
+  color: #ffcccc;
+  text-shadow: 3px 3px #330033;
 }
 
 .orderbook-table {
@@ -718,7 +780,7 @@ body {
 }
 
 .order-form-container h3 {
-  font-size: 12px;
+  font-size: 13px;
   margin: 5px 0;
   color: #ffccff;
   text-shadow: 1px 1px #330033;
@@ -733,13 +795,14 @@ body {
 .tab {
   background: #ff66cc;
   border: 2px solid #ff99ff;
-  padding: 5px 10px;
+  padding: 10px 10px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 12px;
   color: #ffffff;
-  margin-right: 5px;
+  margin-top: 10px;
+  margin-right: 10px;
   text-shadow: 1px 1px #330033;
-  transition: all 0.2s;
+  transition: all 1s;
 }
 
 .tab.active {
@@ -749,8 +812,28 @@ body {
   font-weight: bold;
 }
 
-.tab-content {
+.tab-content input[type="number"] {
+  background-color: #fcd1ff; /* 淺粉紫色背景 */
+  color: #5a0080; /* 深紫文字 */
+  border: 4px solid #ff9eff; /* 粉紫色邊框 */
+  font-family: 'Press Start 2P', cursive; /* 像素風字體 (需載入) */
+  font-size: 14px;
+  padding: 10px;
+  outline: none;
 
+  box-shadow: 4px 4px 0 #c93fff; /* 像素風陰影 */
+  border-radius: 0; /* 保持硬邊像素風 */
+  width: 90%;
+  text-align: center;
+}
+
+/* 可選：hover 和 focus 效果強化遊戲感 */
+.tab-content input[type="number"]:hover,
+.tab-content input[type="number"]:focus {
+  background-color: #ffe6ff;
+  border-color: #ff00ff;
+  box-shadow: 4px 4px 0 #ff00ff;
+  color: #8000ff;
 }
 
 .tab-content.active {
@@ -839,12 +922,38 @@ body {
   font-size: 12px;
 }
 
-.footer {
-  text-align: center;
-  font-size: 8px;
-  color: #ffccff;
-  margin-top: 15px;
-  text-shadow: 1px 1px #330033;
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.button-group button {
+  background-color: #e2ec8d; /* 淺粉紫 */
+  color: #5a0080;            /* 深紫文字 */
+  border: 4px solid #ff9eff; /* 粉紫邊框 */
+  font-family: 'Press Start 2P', cursive;
+  font-size: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+
+  box-shadow: 4px 4px 0 #c93fff; /* 像素陰影 */
+  border-radius: 0;
+  transition: all 0.3s ease-in-out;
+}
+
+/* 遊戲感：按下時稍微縮進 */
+.button-group button:active {
+  box-shadow: 2px 2px 0 #c93fff;
+  transform: translate(2px, 2px);
+}
+
+/* hover 效果 */
+.button-group button:hover {
+  background-color: #e468ef;
+  border-color: #ff00ff;
+  box-shadow: 4px 4px 0 #ff00ff;
+  color: #8000ff;
 }
 
 .market-container {
