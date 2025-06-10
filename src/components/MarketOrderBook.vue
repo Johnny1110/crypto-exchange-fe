@@ -153,8 +153,8 @@
           <input
               type="range"
               min="0"
-              max="100"
-              step="1"
+              max="99.9"
+              step="0.1"
               v-model="orderPercentage"
           >
           <div class="range-button">
