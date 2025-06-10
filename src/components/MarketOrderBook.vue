@@ -392,50 +392,97 @@ export default {
         return
       }
 
+      var response
+
       if (side === 'buy') {
-        await ordersAPI.placeLimitBuyOrder(this.market, this.limitPrice, this.limitAmount)
+        if (this.limitPrice * this.limitAmount > this.quoteBalance) {
+          alert("insufficient " + this.quoteAsset + " balance")
+          return
+        }
+        response = await ordersAPI.placeLimitBuyOrder(this.market, this.limitPrice, this.limitAmount)
       } else {
-        await ordersAPI.placeLimitSellOrder(this.market, this.limitPrice, this.limitAmount)
+        if (this.limitAmount > this.baseBalance) {
+          alert("insufficient " + this.baseAsset + " balance")
+          return
+        }
+        response = await ordersAPI.placeLimitSellOrder(this.market, this.limitPrice, this.limitAmount)
       }
-      this.showModal = true
-      this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
-          "Price: " + this.limitPrice + ", Amount: " + this.limitAmount + ".\n" +
-          "Please check your orders.";
-      this.commonData.data.title = "Limit Order Confirmation"
-      this.fetchOpenOrders()
-      this.fetchClosedOrders()
-      this.refreshBalances()
-      this.cmdOutputList.push(`C:\\CryptoEx> trading ${this.market} - ${side} order placed.\n` +
-          `Price: ${this.limitPrice}, Amount: ${this.limitAmount}.\n`);
+
+      if (response.data.code === '0000000') {
+        this.showModal = true
+        this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
+            "Price: " + this.limitPrice + ", Amount: " + this.limitAmount + ".\n" +
+            "Please check your orders.";
+        this.commonData.data.title = "Limit Order Confirmation"
+        this.fetchOpenOrders()
+        this.fetchClosedOrders()
+        this.refreshBalances()
+        this.cmdOutputList.push(`C:\\CryptoEx> trading ${this.market} - ${side} order placed.\n` +
+            `Price: ${this.limitPrice}, Amount: ${this.limitAmount}.\n`);
+      } else {
+        this.showModal = true
+        this.commonData.data.context = "!Failed placed " + side + " order for " + this.market + ".\n" +
+            "Reason: " + response.data.message;
+        this.commonData.data.title = "Limit Order Failed"
+      }
+
+
 
     },
 
     async placeMarketOrder(side) {
+      var response = {}
+
       if (side === 'buy') {
 
-        if (this.marketBuyAmount <= 1) {
-          alert("[WARNING]: quote amount must greater than 1")
+        if (this.marketBuyAmount <= 0) {
+          alert("[WARNING]: quote amount must greater than 0")
           return
         }
 
-        await ordersAPI.placeMarketBuyOrder(this.market, this.marketBuyAmount)
-        this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
-            " Quote Amount: " + this.marketBuyAmount + ".\n" +
-            "Please check your orders.";
+        if (this.marketBuyAmount > this.quoteBalance) {
+          alert("insufficient " + this.quoteAsset + " balance")
+          return
+        }
+
+        response = await ordersAPI.placeMarketBuyOrder(this.market, this.marketBuyAmount)
+        if (response.data.code === '0000000') {
+          this.commonData.data.title = "Market Order Confirmation"
+          this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
+              " Quote Amount: " + this.marketBuyAmount + ".\n" +
+              "Please check your orders.";
+        } else {
+          this.commonData.data.title = "Market Order Failed"
+          this.commonData.data.context = "!Failed placed " + side + " order for " + this.market + ".\n" +
+              "Reason:" + response.data.message;
+        }
+
       } else {
         if (this.marketSellSize <= 0) {
           alert("[WARNING]: quote amount must greater than 0")
           return
         }
-        await ordersAPI.placeMarketSellOrder(this.market, this.marketSellSize)
-        this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
-            " Sell Size: " + this.marketSellSize + ".\n" +
-            "Please check your orders.";
+
+        if (this.marketSellSize > this.baseBalance) {
+          alert("insufficient " + this.baseAsset + " balance")
+          return
+        }
+
+        response = await ordersAPI.placeMarketSellOrder(this.market, this.marketSellSize)
+        if (response.data.code === '0000000') {
+          this.commonData.data.title = "Market Order Confirmation"
+          this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
+              " Sell Size: " + this.marketSellSize + ".\n" +
+              "Please check your orders.";
+        } else {
+          this.commonData.data.title = "Market Order Failed"
+          this.commonData.data.context = "!Failed placed " + side + " order for " + this.market + ".\n" +
+              "Reason:" + response.data.message;
+        }
       }
 
       this.showModal = true
 
-      this.commonData.data.title = "Market Order Confirmation"
       this.fetchOpenOrders()
       this.fetchClosedOrders()
       this.refreshBalances()
