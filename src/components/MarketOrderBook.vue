@@ -117,9 +117,9 @@
                 placeholder="Enter Sell Size"
                 step="0.00001"
             >
-<!--            <div class="button-group">-->
-<!--              <button @click="placeMarketOrder('sell')" class="sell-btn">Sell</button>-->
-<!--            </div>-->
+            <!--            <div class="button-group">-->
+            <!--              <button @click="placeMarketOrder('sell')" class="sell-btn">Sell</button>-->
+            <!--            </div>-->
           </div>
           <div class="right-pane">
             <label for="buy-amount">Buy Amount ({{ quoteAsset }}):</label>
@@ -143,17 +143,16 @@
               v-model="orderPercentage"
           >
           <div class="range-button">
-            <button class="range-button" @click="placeMarketOrder(placeOrderBtn)" >{{placeOrderBtn}}</button>
+            <button class="range-button" @click="placeOrder(placeOrderBtn)">{{ placeOrderBtn }}</button>
           </div>
         </div>
 
         <div class="balance-section">
-          <h3>Range Amount:{{ limitAmount }}: {{ orderPercentage/10 }} </h3>
+          <h3>Range Amount:{{ limitAmount }}: {{ orderPercentage / 10 }} </h3>
           <h3>Base Balance ({{ baseAsset }}): {{ baseBalance }}</h3>
           <h3>Quote Balance ({{ quoteAsset }}): {{ quoteBalance }}</h3>
         </div>
       </div>
-
 
 
     </div>
@@ -260,7 +259,7 @@ export default {
       orderHistory: [],
       activeTab: 'limit',
       market: "",
-      placeOrderBtn: "Sell",
+      placeOrderBtn: "Buy",
       baseAsset: "",
       quoteAsset: "",
       baseBalance: "",
@@ -311,12 +310,8 @@ export default {
     if (authUtils.isAuthenticated()) {
       //加入but最貴價格
       this.limitPrice = this.askSide[0] ? this.askSide[0].price : 0.0;
-      //orderPercentage的100%(quoteBalance)是指全部的baseAsset,預設10%上去
       //先拿到登入後價錢,如果沒登入不顯示
-      //orderPercentage = limitPrice/quoteBalance * this.orderPercentage / 100
-      this.orderPercentage =  10;
-      //100%等於 Number(this.quoteBalance)/this.limitPrice
-      // this.limitAmount =  (Number(this.quoteBalance)/this.limitPrice)/this.orderPercentage*100
+      this.orderPercentage = 10;
     }
   },
 
@@ -409,8 +404,17 @@ export default {
       }
     },
 
+
+    async placeOrder(side) {
+      if (this.activeTab === 'limit') {
+        await this.placeLimitOrder(side);
+      } else {
+        await this.placeMarketOrder(side);
+      }
+
+    },
     async placeLimitOrder(side) {
-      if (side === 'buy') {
+      if (side === 'Buy') {
         await ordersAPI.placeLimitBuyOrder(this.market, this.limitPrice, this.limitAmount)
       } else {
         await ordersAPI.placeLimitSellOrder(this.market, this.limitPrice, this.limitAmount)
@@ -429,7 +433,8 @@ export default {
     },
 
     async placeMarketOrder(side) {
-      if (side === 'buy') {
+      console.log('Placing market order:', side, this.market);
+      if (side === 'Buy') {
         await ordersAPI.placeMarketBuyOrder(this.market, this.marketBuyAmount)
       } else {
         await ordersAPI.placeMarketSellOrder(this.market, this.marketSellSize)
@@ -558,7 +563,7 @@ export default {
         this.fetchOrderBook()
       }, 1000) // 每5秒更新一次
     },
-    changePlaceOrderBtn(btnName){
+    changePlaceOrderBtn(btnName) {
       this.placeOrderBtn = btnName;
     }
   }
@@ -841,6 +846,7 @@ body {
   margin-top: 15px;
   text-shadow: 1px 1px #330033;
 }
+
 .market-container {
   display: flex;
   height: 27%;
@@ -908,12 +914,14 @@ body {
 .range input[type="range"]:focus {
   background: #bbb;
 }
+
 .button-group {
   display: flex;
-   margin-top: 10px;
+  margin-top: 10px;
   margin-bottom: 10px;
- }
-.range-button{
+}
+
+.range-button {
   width: 100%;
   margin: fill;
 }
