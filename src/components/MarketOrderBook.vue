@@ -67,11 +67,13 @@
         </table>
       </div>
 
-
       <div class="order-form-container">
         <h3>Place Order <b>({{ activeTab }})</b></h3>
-
-        <div class="tab-bar">
+        <div class="button-group">
+          <button @click="changePlaceOrderBtn('Buy')" class="buy-btn">Buy</button>
+          <button @click="changePlaceOrderBtn('Sell')" class="sell-btn">Sell</button>
+        </div>
+        <div class="tab-bar button-group">
           <div
               class="tab"
               :class="{ active: activeTab === 'limit' }"
@@ -92,7 +94,8 @@
               type="number"
               v-model="limitPrice"
               placeholder="Enter price"
-              step="0.01">
+              step="0.01"
+          >
 
           <label for="limit-amount">Amount ({{ baseAsset }}):</label>
           <input
@@ -100,45 +103,58 @@
               type="number"
               v-model="limitAmount"
               placeholder="Enter amount"
-              step="0.00001">
+              step="0.00001"
+          >
 
-          <div class="button-group">
-            <button @click="placeLimitOrder('buy')" class="buy-btn">Buy</button>
-            <button @click="placeLimitOrder('sell')" class="sell-btn">Sell</button>
-          </div>
+
         </div>
 
         <!-- Market Order -->
-        <div v-show="activeTab === 'market'" class="tab-content">
+        <div v-show="activeTab === 'market'" class="market-container">
+          <div class="left-pane">
+            <label for="sell-size">Sell Size ({{ baseAsset }}):</label>
+            <input
+                id="sell-size"
+                type="number"
+                v-model="marketSellSize"
+                placeholder="Enter Sell Size"
+                step="0.00001"
+            >
+            <!--            <div class="button-group">-->
+            <!--              <button @click="placeMarketOrder('sell')" class="sell-btn">Sell</button>-->
+            <!--            </div>-->
+          </div>
+          <div class="right-pane">
+            <label for="buy-amount">Buy Amount ({{ quoteAsset }}):</label>
+            <input
+                id="buy-amount"
+                type="number"
+                v-model="marketBuyAmount"
+                placeholder="Enter Buy amount"
+                step="0.00001"
+            >
 
-          <label for="sell-size">Sell Size ({{ baseAsset }}):</label>
+          </div>
+        </div>
+
+        <div class="range">
           <input
-              id="sell-size"
-              type="number"
-              v-model="marketSellSize"
-              placeholder="Enter Sell Size"
-              step="0.00001">
-
-          <label for="Buy-amount">Buy Amount ({{ quoteAsset }}):</label>
-
-          <input
-              id="buy-amount"
-              type="number"
-              v-model="marketBuyAmount"
-              placeholder="Enter Buy amount"
-              step="0.00001">
-
-          <div class="button-group">
-            <button @click="placeMarketOrder('buy')" class="buy-btn">Buy</button>
-            <button @click="placeMarketOrder('sell')" class="sell-btn">Sell</button>
+              type="range"
+              min="0"
+              max="100"
+              step="10"
+              v-model="orderPercentage"
+          >
+          <div class="range-button">
+            <button class="range-button" @click="placeOrder(placeOrderBtn)">{{ placeOrderBtn }}</button>
           </div>
         </div>
 
         <div class="balance-section">
+          <h3>Range Amount:{{ limitAmount }}: {{ orderPercentage / 10 }} </h3>
           <h3>Base Balance ({{ baseAsset }}): {{ baseBalance }}</h3>
           <h3>Quote Balance ({{ quoteAsset }}): {{ quoteBalance }}</h3>
         </div>
-
       </div>
 
 
@@ -211,7 +227,8 @@
       <div class="cmd-output">
         <span v-if="cmdOutputList.length === 0">No command output yet.</span>
         <ul>
-          <div v-for="(output, index) in cmdOutputList" :key="'output-' + index">{{ output }} <span class="cursor">_</span></div>
+          <div v-for="(output, index) in cmdOutputList" :key="'output-' + index">{{ output }} <span
+              class="cursor">_</span></div>
         </ul>
       </div>
     </div>
@@ -233,7 +250,11 @@ export default {
   name: 'MarketOrderBook',
   emits: ['navigate', 'logout'],
   components: {CommonModal},
-
+  watch: {
+    orderPercentage(newVal) {
+      this.limitAmount = (Number(this.quoteBalance) * (newVal / 100)) / this.limitPrice;
+    }
+  },
   data() {
     return {
       latestPrice: 0.0,
@@ -241,10 +262,12 @@ export default {
       orderHistory: [],
       activeTab: 'limit',
       market: "",
+      placeOrderBtn: "Buy",
       baseAsset: "",
       quoteAsset: "",
       baseBalance: "",
       quoteBalance: "",
+      orderPercentage: 0,
       limitPrice: 0.0,
       limitAmount: 0.0,
       marketSellSize: 0.0,
@@ -290,7 +313,12 @@ export default {
     const quoteAsset = 'USD'; // Example dynamic data
     this.cmdOutputList.push(`C:\\CryptoEx> trading ${baseAsset}/${quoteAsset}
     Loading market data...`);
-
+    if (authUtils.isAuthenticated()) {
+      //加入but最貴價格
+      this.limitPrice = this.askSide[0] ? this.askSide[0].price : 0.0;
+      //先拿到登入後價錢,如果沒登入不顯示
+      this.orderPercentage = 10;
+    }
   },
 
 
@@ -300,7 +328,8 @@ export default {
     },
     nonZeroBalances() {
       return this.balances.filter(balance => balance.total > 0).length
-    }
+    },
+
   },
 
   beforeUnmount() {
@@ -381,25 +410,28 @@ export default {
       }
     },
 
+
+    async placeOrder(side) {
+      if (this.activeTab === 'limit') {
+        await this.placeLimitOrder(side);
+      } else {
+        await this.placeMarketOrder(side);
+      }
+
+    },
     async placeLimitOrder(side) {
 
-      if (this.limitAmount <= 0) {
-        alert("[WARNING]: size must greater than 0")
-        return
-      }
-      if (this.limitPrice <= 0) {
-        alert("[WARNING]: limit price must greater than 0")
-        return
-      }
-
-      var response
-
-      if (side === 'buy') {
-        if (this.limitPrice * this.limitAmount > this.quoteBalance) {
-          alert("insufficient " + this.quoteAsset + " balance")
+      if (side === 'Buy') {
+        if (this.limitAmount <= 0) {
+          alert("[WARNING]: size must greater than 0")
           return
         }
-        response = await ordersAPI.placeLimitBuyOrder(this.market, this.limitPrice, this.limitAmount)
+        if (this.limitPrice <= 0) {
+          alert("[WARNING]: limit price must greater than 0")
+          return
+        }
+        await ordersAPI.placeLimitBuyOrder(this.market, this.limitPrice, this.limitAmount)
+
       } else {
         if (this.limitAmount > this.baseBalance) {
           alert("insufficient " + this.baseAsset + " balance")
@@ -431,32 +463,18 @@ export default {
     },
 
     async placeMarketOrder(side) {
-      var response = {}
-
-      if (side === 'buy') {
-
+      console.log('Placing market order:', side, this.market);
+      if (side === 'Buy') {
         if (this.marketBuyAmount <= 0) {
-          alert("[WARNING]: quote amount must greater than 0")
-          return
-        }
+            alert("[WARNING]: quote amount must greater than 0")
+            return
+          }
 
-        if (this.marketBuyAmount > this.quoteBalance) {
-          alert("insufficient " + this.quoteAsset + " balance")
-          return
-        }
-
-        response = await ordersAPI.placeMarketBuyOrder(this.market, this.marketBuyAmount)
-        if (response.data.code === '0000000') {
-          this.commonData.data.title = "Market Order Confirmation"
-          this.commonData.data.context = "Successfully placed " + side + " order for " + this.market + ".\n" +
-              " Quote Amount: " + this.marketBuyAmount + ".\n" +
-              "Please check your orders.";
-        } else {
-          this.commonData.data.title = "Market Order Failed"
-          this.commonData.data.context = "!Failed placed " + side + " order for " + this.market + ".\n" +
-              "Reason:" + response.data.message;
-        }
-
+          if (this.marketBuyAmount > this.quoteBalance) {
+            alert("insufficient " + this.quoteAsset + " balance")
+            return
+          }
+        await ordersAPI.placeMarketBuyOrder(this.market, this.marketBuyAmount)
       } else {
         if (this.marketSellSize <= 0) {
           alert("[WARNING]: quote amount must greater than 0")
@@ -607,7 +625,9 @@ export default {
         this.fetchOrderBook()
       }, 1000) // 每5秒更新一次
     },
-
+    changePlaceOrderBtn(btnName) {
+      this.placeOrderBtn = btnName;
+    }
   }
 }
 </script>
@@ -768,7 +788,8 @@ body {
 
 .tab-bar {
   display: flex;
-  margin-bottom: 30px;
+  margin-bottom: 10px;
+  justify-content: center;
 }
 
 .tab {
@@ -935,5 +956,82 @@ body {
   color: #8000ff;
 }
 
+.market-container {
+  display: flex;
+  height: 27%;
+}
 
+.left-pane {
+  flex: 1.5;
+  padding: 1rem;
+  border-right: 1px solid #ccc; /* 分隔左右的線條 */
+}
+
+.right-pane {
+  flex: 1.5;
+  padding: 1rem;
+}
+
+.range {
+  width: 100%;
+  max-width: 300px;
+  margin: 20px auto;
+}
+
+.range input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 8px;
+  background: #ddd;
+  border-radius: 4px;
+  outline: none;
+  transition: background 0.3s;
+}
+
+.range input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #007bff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s, transform 0.2s;
+}
+
+.range input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #007bff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s, transform 0.2s;
+}
+
+.range input[type="range"]:hover::-webkit-slider-thumb {
+  background: #0056b3;
+  transform: scale(1.1);
+}
+
+.range input[type="range"]:hover::-moz-range-thumb {
+  background: #0056b3;
+  transform: scale(1.1);
+}
+
+.range input[type="range"]:focus {
+  background: #bbb;
+}
+
+.button-group {
+  display: flex;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.range-button {
+  width: 100%;
+  margin: fill;
+}
 </style>
