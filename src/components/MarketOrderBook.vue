@@ -68,26 +68,39 @@
       </div>
 
       <div class="order-form-container">
-        <h3>Place Order <b>({{ activeTab }})</b></h3>
-        <div class="button-group">
-          <button @click="changePlaceOrderBtn('Buy')" class="buy-btn">Buy</button>
-          <button @click="changePlaceOrderBtn('Sell')" class="sell-btn">Sell</button>
-        </div>
+        <h3>Place Order <b>({{ orderType }})</b></h3>
+
         <div class="tab-bar button-group">
           <div
               class="tab"
-              :class="{ active: activeTab === 'limit' }"
-              @click="activeTab = 'limit'">Limit
+              :class="{ active: orderType === 'limit' }"
+              @click="orderType = 'limit'">Limit
           </div>
           <div
               class="tab"
-              :class="{ active: activeTab === 'market' }"
-              @click="activeTab = 'market'">Market
+              :class="{ active: orderType === 'market' }"
+              @click="orderType = 'market'">Market
           </div>
         </div>
 
+        <div class="button-group">
+          <button
+              :class="{ active: placeOrderBtn === 'Buy' }"
+              class="buy"
+              @click="changePlaceOrderBtn('Buy')">
+            Buy
+          </button>
+          <button
+              :class="{ active: placeOrderBtn === 'Sell' }"
+              class="sell"
+              @click="changePlaceOrderBtn('Sell')">
+            Sell
+          </button>
+        </div>
+
+
         <!-- Limit Order -->
-        <div v-show="activeTab === 'limit'" class="tab-content">
+        <div v-show="orderType === 'limit'" class="tab-content">
           <label for="limit-price">Price ({{ quoteAsset }}):</label>
           <input
               id="limit-price"
@@ -106,12 +119,11 @@
               step="0.00001"
           >
 
-
         </div>
 
         <!-- Market Order -->
-        <div v-show="activeTab === 'market'" class="market-container">
-          <div class="left-pane">
+        <div v-show="orderType === 'market'" class="market-container">
+          <div class="tab-content" v-show="placeOrderBtn === 'Sell'">
             <label for="sell-size">Sell Size ({{ baseAsset }}):</label>
             <input
                 id="sell-size"
@@ -124,7 +136,7 @@
             <!--              <button @click="placeMarketOrder('sell')" class="sell-btn">Sell</button>-->
             <!--            </div>-->
           </div>
-          <div class="right-pane">
+          <div class="tab-content" v-show="placeOrderBtn === 'Buy'">
             <label for="buy-amount">Buy Amount ({{ quoteAsset }}):</label>
             <input
                 id="buy-amount"
@@ -142,16 +154,16 @@
               type="range"
               min="0"
               max="100"
-              step="10"
+              step="1"
               v-model="orderPercentage"
           >
           <div class="range-button">
-            <button class="range-button" @click="placeOrder(placeOrderBtn)">{{ placeOrderBtn }}</button>
+            <button class="range-button" @click="placeOrder(placeOrderBtn)">Confrim</button>
           </div>
         </div>
 
         <div class="balance-section">
-          <h3>Range Amount:{{ limitAmount }}: {{ orderPercentage / 10 }} </h3>
+          <h3>Percentage:{{ orderPercentage}} % </h3>
           <h3>Base Balance ({{ baseAsset }}): {{ baseBalance }}</h3>
           <h3>Quote Balance ({{ quoteAsset }}): {{ quoteBalance }}</h3>
         </div>
@@ -251,8 +263,38 @@ export default {
   emits: ['navigate', 'logout'],
   components: {CommonModal},
   watch: {
+    placeOrderBtn() {
+      this.orderPercentage = 0
+    },
+    orderType(newVal) {
+      this.orderPercentage = 0
+      if (newVal === 'limit') {
+        this.marketBuyAmount = 0
+      } else {
+        this.limitAmount = 0
+        this.limitPrice = this.latestPrice
+      }
+    },
+
     orderPercentage(newVal) {
-      this.limitAmount = (Number(this.quoteBalance) * (newVal / 100)) / this.limitPrice;
+      const percentage = newVal / 100;
+      const isBuy = this.placeOrderBtn === "Buy";
+      const isLimit = this.orderType === 'limit';
+
+      if (isLimit) {
+        if (isBuy) {
+          this.limitAmount = (Number(this.quoteBalance) * percentage) / this.limitPrice;
+        } else {
+          this.limitAmount = Number(this.baseBalance) * percentage;
+        }
+      } else {
+        // market order
+        if (isBuy) {
+          this.marketBuyAmount = Number(this.quoteBalance) * percentage;
+        } else {
+          this.marketSellSize = Number(this.baseBalance) * percentage;
+        }
+      }
     }
   },
   data() {
@@ -260,7 +302,7 @@ export default {
       latestPrice: 0.0,
       openOrders: [],
       orderHistory: [],
-      activeTab: 'limit',
+      orderType: 'limit',
       market: "",
       placeOrderBtn: "Buy",
       baseAsset: "",
@@ -317,7 +359,7 @@ export default {
       //加入but最貴價格
       this.limitPrice = this.askSide[0] ? this.askSide[0].price : 0.0;
       //先拿到登入後價錢,如果沒登入不顯示
-      this.orderPercentage = 10;
+      this.orderPercentage = 0;
     }
   },
 
@@ -412,7 +454,7 @@ export default {
 
 
     async placeOrder(side) {
-      if (this.activeTab === 'limit') {
+      if (this.orderType === 'limit') {
         await this.placeLimitOrder(side);
       } else {
         await this.placeMarketOrder(side);
@@ -420,6 +462,8 @@ export default {
 
     },
     async placeLimitOrder(side) {
+
+      var response
 
       if (side === 'Buy') {
         if (this.limitAmount <= 0) {
@@ -430,7 +474,7 @@ export default {
           alert("[WARNING]: limit price must greater than 0")
           return
         }
-        await ordersAPI.placeLimitBuyOrder(this.market, this.limitPrice, this.limitAmount)
+        response = await ordersAPI.placeLimitBuyOrder(this.market, this.limitPrice, this.limitAmount)
 
       } else {
         if (this.limitAmount > this.baseBalance) {
@@ -464,17 +508,17 @@ export default {
 
     async placeMarketOrder(side) {
       console.log('Placing market order:', side, this.market);
+      var response
       if (side === 'Buy') {
         if (this.marketBuyAmount <= 0) {
             alert("[WARNING]: quote amount must greater than 0")
             return
           }
-
           if (this.marketBuyAmount > this.quoteBalance) {
             alert("insufficient " + this.quoteAsset + " balance")
             return
           }
-        await ordersAPI.placeMarketBuyOrder(this.market, this.marketBuyAmount)
+        response = await ordersAPI.placeMarketBuyOrder(this.market, this.marketBuyAmount)
       } else {
         if (this.marketSellSize <= 0) {
           alert("[WARNING]: quote amount must greater than 0")
@@ -942,10 +986,12 @@ body {
   transition: all 0.3s ease-in-out;
 }
 
-/* 遊戲感：按下時稍微縮進 */
-.button-group button:active {
-  box-shadow: 2px 2px 0 #c93fff;
-  transform: translate(2px, 2px);
+/* 選中狀態 - 新增 */
+.button-group button.active {
+  background-color: #ff00ff; /* 亮粉紫背景 */
+  color: #ffffff;            /* 白色文字 */
+  border-color: #8000ff;     /* 深紫邊框 */
+  box-shadow: 4px 4px 0 #4a0080; /* 更深的陰影 */
 }
 
 /* hover 效果 */
@@ -954,6 +1000,41 @@ body {
   border-color: #ff00ff;
   box-shadow: 4px 4px 0 #ff00ff;
   color: #8000ff;
+}
+
+/* 選中狀態的 hover 效果 - 新增 */
+.button-group button.active:hover {
+  background-color: #cc00cc; /* 稍微暗一點的粉紫 */
+  border-color: #6600cc;
+  box-shadow: 4px 4px 0 #330066;
+}
+
+/* 遊戲感：按下時稍微縮進 */
+.button-group button:active {
+  box-shadow: 2px 2px 0 #c93fff;
+  transform: translate(2px, 2px);
+}
+
+/* 選中狀態按下效果 - 新增 */
+.button-group button.active:active {
+  box-shadow: 2px 2px 0 #4a0080;
+  transform: translate(2px, 2px);
+}
+
+/* Buy 按鈕選中狀態 */
+.button-group button.buy.active {
+  background-color: #00ff88; /* 綠色系 */
+  color: #004400;
+  border-color: #00cc66;
+  box-shadow: 4px 4px 0 #006633;
+}
+
+/* Sell 按鈕選中狀態 */
+.button-group button.sell.active {
+  background-color: #ff4488; /* 紅色系 */
+  color: #ffffff;
+  border-color: #cc0044;
+  box-shadow: 4px 4px 0 #880033;
 }
 
 .market-container {
@@ -1031,6 +1112,8 @@ body {
 }
 
 .range-button {
+  font-size: 24px;
+  height: 50px;
   width: 100%;
   margin: fill;
 }
