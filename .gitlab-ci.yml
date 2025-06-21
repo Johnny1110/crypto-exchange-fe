@@ -10,7 +10,7 @@ stages:
     - main # 僅限 main 分支才做
   image: node # 各 job 基底 image
   tags:
-    - crpto-runner
+    - crypto-runner
   before_script:
     - ls
   cache:
