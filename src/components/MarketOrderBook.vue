@@ -2,14 +2,13 @@
   <div>
 
     <div class="trading-section">
+
       <div class="chart-container">
         <p class="latest-price">Latest Price: {{ latestPrice }} {{ quoteAsset }}</p>
         <h3>K-Line Chart ({{ baseAsset }}/ {{ quoteAsset }})</h3>
-        <p>//TODO: impl with TradingView</p>
-        <p>//TODO: impl with TradingView</p>
-        <p>//TODO: impl with TradingView</p>
-        <canvas id="klineChart"></canvas>
+        <KlineChart :market="market" :interval="chartInterval"/>
       </div>
+
 
       <div class="orderbook-container">
         <h3>Order Book</h3>
@@ -257,11 +256,12 @@
 import {authUtils} from '@/services/auth'
 import {walletAPI, orderBooksAPI, ordersAPI} from '@/services/apiService'
 import CommonModal from "@/components/common/CommonModal.vue";
+import KlineChart from "@/components/KLineChart.vue";
 
 export default {
   name: 'MarketOrderBook',
   emits: ['navigate', 'logout'],
-  components: {CommonModal},
+  components: {CommonModal, KlineChart},
   watch: {
     placeOrderBtn() {
       this.orderPercentage = 0
@@ -299,6 +299,7 @@ export default {
   },
   data() {
     return {
+      chartInterval: "15m",
       latestPrice: 0.0,
       openOrders: [],
       orderHistory: [],
@@ -585,6 +586,10 @@ export default {
       } catch (error) {
         console.error("Failed to fetch order book:", error);
       }
+    },
+
+    async handlePriceUpdate(data) {
+      console.log("handlePriceUpdate:", data)
     },
 
     async fetchBalances() {

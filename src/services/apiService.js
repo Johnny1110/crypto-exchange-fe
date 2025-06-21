@@ -68,6 +68,13 @@ export const orderBooksAPI = {
     }
 }
 
+//ohlcv
+export const ohlcvAPI = {
+    getOhlcvHistory(market, interval) {
+        return apiClient.get(`/api/v1/markets/${market}/ohlcv-history/${interval}`)
+    }
+}
+
 // 新增：訂單 API
 export const ordersAPI = {
     /**
