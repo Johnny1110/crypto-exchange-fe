@@ -2,8 +2,8 @@
 import axios from 'axios'
 import {authUtils} from "@/services/auth";
 
-//const BASE_URL = 'http://localhost:8080'
-const BASE_URL = 'http://34.81.155.101:8080'
+const BASE_URL = 'http://localhost:8080'
+//const BASE_URL = 'http://34.81.155.101:8080'
 
 const apiClient = axios.create({
     baseURL: BASE_URL,

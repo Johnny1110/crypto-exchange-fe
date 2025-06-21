@@ -2,14 +2,28 @@
   <div>
 
     <div class="trading-section">
+
+<!--      <div class="chart-container">-->
+<!--        <p class="latest-price">Latest Price: {{ latestPrice }} {{ quoteAsset }}</p>-->
+<!--        <h3>K-Line Chart ({{ baseAsset }}/ {{ quoteAsset }})</h3>-->
+<!--        <p>//TODO: impl with TradingView</p>-->
+<!--        <p>//TODO: impl with TradingView</p>-->
+<!--        <p>//TODO: impl with TradingView</p>-->
+<!--        <canvas id="klineChart"></canvas>-->
+<!--      </div>-->
+
       <div class="chart-container">
         <p class="latest-price">Latest Price: {{ latestPrice }} {{ quoteAsset }}</p>
         <h3>K-Line Chart ({{ baseAsset }}/ {{ quoteAsset }})</h3>
-        <p>//TODO: impl with TradingView</p>
-        <p>//TODO: impl with TradingView</p>
-        <p>//TODO: impl with TradingView</p>
-        <canvas id="klineChart"></canvas>
+        <KlineChart
+            :market="`${baseAsset}-${quoteAsset}`"
+            interval="15m"
+            api-base-url="/api/v1"
+            ws-url="ws://localhost:8081/ws"
+            @price-update="handlePriceUpdate"
+        />
       </div>
+
 
       <div class="orderbook-container">
         <h3>Order Book</h3>
@@ -257,11 +271,12 @@
 import {authUtils} from '@/services/auth'
 import {walletAPI, orderBooksAPI, ordersAPI} from '@/services/apiService'
 import CommonModal from "@/components/common/CommonModal.vue";
+import KlineChart from "@/components/KLineChart.vue";
 
 export default {
   name: 'MarketOrderBook',
   emits: ['navigate', 'logout'],
-  components: {CommonModal},
+  components: {CommonModal, KlineChart},
   watch: {
     placeOrderBtn() {
       this.orderPercentage = 0
@@ -585,6 +600,10 @@ export default {
       } catch (error) {
         console.error("Failed to fetch order book:", error);
       }
+    },
+
+    async handlePriceUpdate(data) {
+      console.log("handlePriceUpdate:", data)
     },
 
     async fetchBalances() {
