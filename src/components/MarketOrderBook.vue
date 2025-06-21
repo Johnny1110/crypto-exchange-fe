@@ -3,25 +3,10 @@
 
     <div class="trading-section">
 
-<!--      <div class="chart-container">-->
-<!--        <p class="latest-price">Latest Price: {{ latestPrice }} {{ quoteAsset }}</p>-->
-<!--        <h3>K-Line Chart ({{ baseAsset }}/ {{ quoteAsset }})</h3>-->
-<!--        <p>//TODO: impl with TradingView</p>-->
-<!--        <p>//TODO: impl with TradingView</p>-->
-<!--        <p>//TODO: impl with TradingView</p>-->
-<!--        <canvas id="klineChart"></canvas>-->
-<!--      </div>-->
-
       <div class="chart-container">
         <p class="latest-price">Latest Price: {{ latestPrice }} {{ quoteAsset }}</p>
         <h3>K-Line Chart ({{ baseAsset }}/ {{ quoteAsset }})</h3>
-        <KlineChart
-            :market="`${baseAsset}-${quoteAsset}`"
-            interval="15m"
-            api-base-url="/api/v1"
-            ws-url="ws://localhost:8081/ws"
-            @price-update="handlePriceUpdate"
-        />
+        <KlineChart :market="market" :interval="chartInterval"/>
       </div>
 
 
@@ -314,6 +299,7 @@ export default {
   },
   data() {
     return {
+      chartInterval: "15m",
       latestPrice: 0.0,
       openOrders: [],
       orderHistory: [],
